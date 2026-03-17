@@ -965,24 +965,7 @@ export default function App() {
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"26px",marginBottom:"3px"}}>Bill History</div>
                 <div style={{fontSize:"12px",color:T.textDim}}>{bills.length} bill{bills.length!==1?"s":""} analyzed · billing trends over time</div>
               </div>
-              <div style={{display:"flex",gap:"8px",flexWrap:"wrap",justifyContent:"flex-end"}}>
-                {bills.length>0&&deleteMode&&deleteIds.size>0&&(
-                  <button onClick={deleteSelected} style={{background:"#FF3B30",border:"none",color:"#fff",padding:"9px 16px",borderRadius:"7px",cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace"}}>
-                    🗑 Delete Selected ({deleteIds.size})
-                  </button>
-                )}
-                {bills.length>0&&(
-                  <button onClick={deleteMode?toggleDeleteMode:toggleDeleteMode} style={{background:deleteMode?T.bgCard:"rgba(255,59,48,0.1)",border:`1px solid ${deleteMode?T.border:"rgba(255,59,48,0.3)"}`,color:deleteMode?T.textDim:"#FF3B30",padding:"9px 16px",borderRadius:"7px",cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace"}}>
-                    {deleteMode?"✕ Cancel":"☑ Select to Delete"}
-                  </button>
-                )}
-                {bills.length>0&&!deleteMode&&(
-                  <button onClick={deleteAll} style={{background:"rgba(255,59,48,0.1)",border:"1px solid rgba(255,59,48,0.3)",color:"#FF3B30",padding:"9px 16px",borderRadius:"7px",cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace"}}>
-                    🗑 Delete All
-                  </button>
-                )}
-                <button onClick={()=>setView("analyze")} style={{background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",color:"#040d18",padding:"9px 18px",borderRadius:"7px",cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace",boxShadow:"0 2px 10px rgba(56,189,248,.2)"}}>+ Analyze New Bill</button>
-              </div>
+              <button onClick={()=>setView("analyze")} style={{background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",color:"#040d18",padding:"9px 18px",borderRadius:"7px",cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace",boxShadow:"0 2px 10px rgba(56,189,248,.2)"}}>+ Analyze New Bill</button>
             </div>
 
             {bills.length===0?(
@@ -1024,9 +1007,26 @@ export default function App() {
                 )}
                 <div style={{...CARD}}>
                   <SecHeader icon="🗂" title={`All Bills (${bills.length})`} T={T} right={
-                    bills.length>=2&&<div style={{fontSize:"10px",color:T.textDim,fontFamily:"monospace"}}>
-                      {compareIds.size===0?"Select 2 to compare":compareIds.size===1?"Select 1 more":
-                        <span style={{color:"#FF9500",cursor:"pointer"}} onClick={()=>setView("compare")}>⚖ Compare ready →</span>}
+                    bills.length>0&&<div style={{display:"flex",alignItems:"center",gap:"10px",flexWrap:"wrap",justifyContent:"flex-end"}}>
+                      {/* Compare hint */}
+                      {bills.length>=2&&<div style={{fontSize:"10px",color:T.textDim,fontFamily:"monospace"}}>
+                        {compareIds.size===0?"Select 2 to compare":compareIds.size===1?"Select 1 more":
+                          <span style={{color:"#FF9500",cursor:"pointer"}} onClick={()=>setView("compare")}>⚖ Compare ready →</span>}
+                      </div>}
+                      {/* Delete controls */}
+                      {deleteMode&&deleteIds.size>0&&(
+                        <button onClick={deleteSelected} style={{background:"#FF3B30",border:"none",color:"#fff",padding:"3px 10px",borderRadius:"5px",cursor:"pointer",fontSize:"10px",fontWeight:"700",fontFamily:"monospace"}}>
+                          🗑 Delete ({deleteIds.size})
+                        </button>
+                      )}
+                      <button onClick={toggleDeleteMode} style={{background:deleteMode?"rgba(255,59,48,0.15)":"rgba(255,59,48,0.08)",border:`1px solid ${deleteMode?"rgba(255,59,48,0.4)":"rgba(255,59,48,0.2)"}`,color:"#FF6B6B",padding:"3px 10px",borderRadius:"5px",cursor:"pointer",fontSize:"10px",fontWeight:"700",fontFamily:"monospace"}}>
+                        {deleteMode?"✕ Cancel":"☑ Select"}
+                      </button>
+                      {!deleteMode&&(
+                        <button onClick={deleteAll} style={{background:"rgba(255,59,48,0.08)",border:"1px solid rgba(255,59,48,0.2)",color:"#FF6B6B",padding:"3px 10px",borderRadius:"5px",cursor:"pointer",fontSize:"10px",fontWeight:"700",fontFamily:"monospace"}}>
+                          🗑 All
+                        </button>
+                      )}
                     </div>
                   }/>
                   {[...bills].sort((a,b)=>new Date(b.analyzedAt)-new Date(a.analyzedAt)).map(bill=>{
