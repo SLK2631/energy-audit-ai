@@ -693,6 +693,8 @@ export default function App() {
   const [storageReady, setStorageReady] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [compareIds, setCompareIds] = useState(new Set());
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [deleteIds, setDeleteIds] = useState(new Set());
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [pdfToast, setPdfToast] = useState(false);
   const fileInputRef = useRef();
@@ -757,6 +759,9 @@ export default function App() {
 
   const loadDemo = ()=>{ setBills(DEMO_BILLS); setView("history"); };
   const deleteBill = (id)=>setBills(p=>p.filter(b=>b.id!==id));
+  const deleteSelected = ()=>{ setBills(p=>p.filter(b=>!deleteIds.has(b.id))); setDeleteIds(new Set()); setDeleteMode(false); };
+  const deleteAll = ()=>{ if(window.confirm("Delete all bills? This cannot be undone.")){setBills([]); setDeleteIds(new Set()); setDeleteMode(false); setCompareIds(new Set());} };
+  const toggleDeleteMode = ()=>{ setDeleteMode(m=>!m); setDeleteIds(new Set()); };
   const openBill = (bill)=>{ setSelectedBill(bill); setActiveTab("negotiation"); setShowChat(false); setView("detail"); };
   // HTML fallback (used if PDF fails)
   const dl = (r)=>{ const html=buildReport(r,completedActions); const blob=new Blob([html],{type:"text/html"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=`energy-audit-${Date.now()}.html`; a.click(); URL.revokeObjectURL(url); };
@@ -960,7 +965,24 @@ export default function App() {
                 <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"26px",marginBottom:"3px"}}>Bill History</div>
                 <div style={{fontSize:"12px",color:T.textDim}}>{bills.length} bill{bills.length!==1?"s":""} analyzed · billing trends over time</div>
               </div>
-              <button onClick={()=>setView("analyze")} style={{background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",color:"#040d18",padding:"9px 18px",borderRadius:"7px",cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace",boxShadow:"0 2px 10px rgba(56,189,248,.2)"}}>+ Analyze New Bill</button>
+              <div style={{display:"flex",gap:"8px",flexWrap:"wrap",justifyContent:"flex-end"}}>
+                {bills.length>0&&deleteMode&&deleteIds.size>0&&(
+                  <button onClick={deleteSelected} style={{background:"#FF3B30",border:"none",color:"#fff",padding:"9px 16px",borderRadius:"7px",cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace"}}>
+                    🗑 Delete Selected ({deleteIds.size})
+                  </button>
+                )}
+                {bills.length>0&&(
+                  <button onClick={deleteMode?toggleDeleteMode:toggleDeleteMode} style={{background:deleteMode?T.bgCard:"rgba(255,59,48,0.1)",border:`1px solid ${deleteMode?T.border:"rgba(255,59,48,0.3)"}`,color:deleteMode?T.textDim:"#FF3B30",padding:"9px 16px",borderRadius:"7px",cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace"}}>
+                    {deleteMode?"✕ Cancel":"☑ Select to Delete"}
+                  </button>
+                )}
+                {bills.length>0&&!deleteMode&&(
+                  <button onClick={deleteAll} style={{background:"rgba(255,59,48,0.1)",border:"1px solid rgba(255,59,48,0.3)",color:"#FF3B30",padding:"9px 16px",borderRadius:"7px",cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace"}}>
+                    🗑 Delete All
+                  </button>
+                )}
+                <button onClick={()=>setView("analyze")} style={{background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",color:"#040d18",padding:"9px 18px",borderRadius:"7px",cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace",boxShadow:"0 2px 10px rgba(56,189,248,.2)"}}>+ Analyze New Bill</button>
+              </div>
             </div>
 
             {bills.length===0?(
@@ -1010,23 +1032,40 @@ export default function App() {
                   {[...bills].sort((a,b)=>new Date(b.analyzedAt)-new Date(a.analyzedAt)).map(bill=>{
                     const bRecs=allRecs(bill);
                     const bDone=bRecs.filter(rec=>completedActions.has(actionId(rec.billId,rec.cat,rec.title))).length;
-                    const isSelected = compareIds.has(bill.id);
-                    const isDisabled = compareIds.size===2 && !isSelected;
+                    const isCompareSelected = compareIds.has(bill.id);
+                    const isCompareDisabled = compareIds.size===2 && !isCompareSelected;
+                    const isDeleteSelected = deleteIds.has(bill.id);
                     return (
-                      <div key={bill.id} className="br" onClick={()=>openBill(bill)}
-                        style={{opacity:isDisabled?0.45:1, outline:isSelected?`2px solid rgba(255,149,0,0.5)`:"none"}}>
-                        {/* Compare checkbox */}
-                        <button onClick={e=>{e.stopPropagation(); setCompareIds(prev=>{const n=new Set(prev); isSelected?n.delete(bill.id):(prev.size<2&&n.add(bill.id)); return n;});}}
-                          style={{flexShrink:0,width:"18px",height:"18px",borderRadius:"4px",
-                            border:`2px solid ${isSelected?"#FF9500":"rgba(255,149,0,0.25)"}`,
-                            background:isSelected?"#FF9500":"transparent",
-                            cursor:isDisabled?"not-allowed":"pointer",
+                      <div key={bill.id} className="br"
+                        onClick={()=>deleteMode?setDeleteIds(prev=>{const n=new Set(prev);isDeleteSelected?n.delete(bill.id):n.add(bill.id);return n;}):openBill(bill)}
+                        style={{
+                          opacity:(!deleteMode&&isCompareDisabled)?0.45:1,
+                          outline:deleteMode&&isDeleteSelected?"2px solid rgba(255,59,48,0.6)":!deleteMode&&isCompareSelected?"2px solid rgba(255,149,0,0.5)":"none",
+                          background:deleteMode&&isDeleteSelected?"rgba(255,59,48,0.06)":"",
+                        }}>
+                        {/* Delete mode checkbox */}
+                        {deleteMode?(
+                          <div style={{flexShrink:0,width:"18px",height:"18px",borderRadius:"4px",
+                            border:`2px solid ${isDeleteSelected?"#FF3B30":"rgba(255,59,48,0.3)"}`,
+                            background:isDeleteSelected?"#FF3B30":"transparent",
                             display:"flex",alignItems:"center",justifyContent:"center",
                             color:"#fff",fontSize:"10px",fontWeight:"700",transition:"all .15s"}}>
-                          {isSelected?"✓":""}
-                        </button>
+                            {isDeleteSelected?"✓":""}
+                          </div>
+                        ):(
+                          /* Compare checkbox */
+                          <button onClick={e=>{e.stopPropagation(); setCompareIds(prev=>{const n=new Set(prev); isCompareSelected?n.delete(bill.id):(prev.size<2&&n.add(bill.id)); return n;});}}
+                            style={{flexShrink:0,width:"18px",height:"18px",borderRadius:"4px",
+                              border:`2px solid ${isCompareSelected?"#FF9500":"rgba(255,149,0,0.25)"}`,
+                              background:isCompareSelected?"#FF9500":"transparent",
+                              cursor:isCompareDisabled?"not-allowed":"pointer",
+                              display:"flex",alignItems:"center",justifyContent:"center",
+                              color:"#fff",fontSize:"10px",fontWeight:"700",transition:"all .15s"}}>
+                            {isCompareSelected?"✓":""}
+                          </button>
+                        )}
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:"12px",fontWeight:"600",color:T.text,marginBottom:"2px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{bill.result.provider}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:"12px",fontWeight:"600",color:deleteMode&&isDeleteSelected?"#FF6B6B":T.text,marginBottom:"2px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{bill.result.provider}</div>
                           <div style={{fontSize:"10px",color:T.textDim}}>{bill.result.billingPeriod}</div>
                         </div>
                         {bDone>0&&<div style={{fontSize:"10px",color:"#34C759",fontFamily:"monospace",flexShrink:0}}>✓ {bDone}/{bRecs.length}</div>}
@@ -1035,7 +1074,7 @@ export default function App() {
                           <div style={{fontSize:"10px",color:T.textDim}}>{bill.result.totalKwh}</div>
                         </div>
                         <StatusBadge status={bill.result.billStatus} small/>
-                        <button className="db" onClick={e=>{e.stopPropagation();deleteBill(bill.id);}}>✕</button>
+                        {!deleteMode&&<button className="db" onClick={e=>{e.stopPropagation();deleteBill(bill.id);}}>✕</button>}
                       </div>
                     );
                   })}
