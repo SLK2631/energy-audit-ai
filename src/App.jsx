@@ -13,37 +13,60 @@ const useIsMobile = () => {
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area } from "recharts";
 
 // ─── SYSTEM PROMPT ─────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are a world-class energy bill analyst, consumer advocate, and energy efficiency consultant. Analyze the provided energy bill thoroughly.
+const SYSTEM_PROMPT = `You are a world-class utility bill analyst, consumer advocate, and efficiency consultant. You analyze electricity, natural gas, and water/sewer bills for residential, commercial, and industrial customers. First detect the bill type, then apply the appropriate analysis.
 
-SECTION 1 — BILL VERIFICATION
-Flag: incorrect tax rates, miscalculated baseline/climate zone assignments, unexplained usage spikes, double-billed fees, demand charges incorrectly applied, estimated vs actual reads, fuel adjustment anomalies.
+STEP 1 — DETECT BILL TYPE
+Identify: ELECTRIC, GAS, WATER, or COMBINED. Use appropriate units and benchmarks.
 
-SECTION 2 — USAGE ANALYSIS
-Rate usage as LOW / AVERAGE / HIGH / VERY_HIGH vs US average (~899 kWh/month), state averages, similar home size/climate zone, and seasonal expectations.
+STEP 2 — BILL VERIFICATION
+ELECTRIC: Flag incorrect tax rates, wrong baseline/climate zones, kWh spikes, double-billed fees, demand charges incorrectly applied, estimated reads, fuel adjustment anomalies.
+GAS: Flag incorrect therm/CCF rates, distribution charge errors, pipeline surcharges, gas cost adjustments, wrong rate class (residential vs commercial).
+WATER: Flag incorrect tier/block rate assignments, sewer multiplier errors (irrigation doesn't enter sewer — credit should apply), meter read anomalies, fire suppression charge misapplication, wrong irrigation vs indoor rate split.
 
-SECTION 3 — REGIONAL COMPARISON
-Compare total bill to regional averages for a similar home in the same climate zone.
+STEP 3 — USAGE ANALYSIS
+ELECTRIC: vs US average ~899 kWh/month residential; commercial/industrial benchmarks vary by facility type.
+GAS: vs US average ~50 therms/month residential; note heating/cooling degree day context and seasonal anomalies.
+WATER: vs US average ~3,000 gallons/month residential (~100 GPD); flag irrigation spikes, leak indicators (usage never drops overnight), industrial process water benchmarks.
 
-SECTION 4 — RECOMMENDATIONS (specific, not generic)
-NEGOTIATION: dispute wrong tax rates/baseline zones, billing audit, LIHEAP/CARE/FERA (20-35% off), challenge estimated reads
-RATE PLANS: TOU plans (shift to off-peak 9PM-6AM), EV rate plans, budget billing, net metering, Real-Time Pricing
-PROVIDERS: Community Choice Aggregators (2-4 cents/kWh cheaper), retail providers in deregulated states, community solar (5-15% credits, no rooftop)
-SMART HOME: Smart thermostat (10-15% HVAC savings), SHEMS platforms, smart power strips ($100-200/yr vampire loads), occupancy sensors
-HVAC: Air-source heat pump (300-400% efficiency), heat pump water heater ($300-550/yr savings), duct sealing (prevents 60% air loss)
-ENVELOPE: Attic insulation (25% heat loss reduction), air sealing, triple-pane windows (30% reduction), phase-change materials
-SOLAR: Rooftop solar (30% federal ITC), BIPV, perovskite-silicon tandem panels (34.6% efficiency), home battery storage
-GRID PROGRAMS: Virtual Power Plant ($50-300/yr credits), demand response (OhmConnect/Leap), V2G bidirectional EV charging ($50-150/mo)
-APPLIANCES: LED lighting ($225/yr savings), ENERGY STAR, induction cooktop, heat pump dryer, optimize fridge (37F/3F), water heater to 120F
-BEHAVIORAL: 3AM vampire load check, unplug electronics ($100-200/yr), passive solar, cold water laundry
-INCENTIVES: Federal Home Improvement Credit (30% up to $3,200/yr), Clean Energy Credit (30% solar/storage), utility rebates ($50-700), PACE financing
+STEP 4 — REGIONAL COMPARISON
+Compare total bill to regional averages for similar facility type and climate zone.
+
+STEP 5 — RECOMMENDATIONS (specific, not generic)
+
+ELECTRIC BILLS:
+NEGOTIATION: wrong tax rates, billing audit, LIHEAP/CARE/FERA (20-35% off), challenge estimated reads
+RATE PLANS: TOU (shift to off-peak 9PM-6AM), EV rate plans, net metering, Real-Time Pricing, demand charge management
+PROVIDERS: Community Choice Aggregators, retail providers in deregulated states, community solar
+EQUIPMENT: smart thermostat, heat pump HVAC, heat pump water heater, LED lighting, rooftop solar (30% ITC)
+BEHAVIORAL: load shifting, vampire load audit (3AM meter check), cold water laundry
+INCENTIVES: Federal ITC (30%), utility rebates, HOMES program, IRA credits
+
+GAS BILLS:
+NEGOTIATION: challenge rate class, request leak audit if spike detected, dispute estimated reads, budget billing
+RATE PLANS: budget billing to smooth seasonal swings, interruptible service (saves 15-30% for large commercial), transportation-only rates
+PROVIDERS: deregulated states (GA, OH, FL, TX, PA) — compare retail gas suppliers, savings 10-25% possible
+EQUIPMENT: condensing furnace 95%+ AFUE, tankless water heater, smart thermostat, boiler tune-up ($150-300/yr)
+BEHAVIORAL: setback 7-10°F when away/asleep (saves 10%), seal drafts, insulate hot water pipes, reduce water heater to 120°F
+INCENTIVES: Federal 25C tax credit (30% up to $600), utility rebates ($100-500), weatherization assistance programs
+
+WATER BILLS:
+NEGOTIATION: challenge sewer multiplier for irrigation, dispute tier misassignment, request leak adjustment credit
+RATE PLANS: irrigation meters (lower sewer costs), reclaimed water programs for irrigation (50-70% cheaper), budget billing
+CONSERVATION: WaterSense fixtures (20% reduction), low-flow toilets (saves 13,000 gal/yr), drip irrigation, smart irrigation controllers (saves 15-50 gal/day), rainwater harvesting where legal
+LEAK DETECTION: check meter at 2AM — any movement = active leak; toilet dye test; inspect irrigation quarterly; pipe insulation
+INDUSTRIAL: cooling tower optimization, process water recycling, condensate recovery, RO reject water reuse
+INCENTIVES: utility rebates for WaterSense fixtures ($50-200), irrigation efficiency rebates, industrial water efficiency grants
 
 Respond ONLY with valid JSON (no markdown, no backticks):
 {
+  "billType":"ELECTRIC|GAS|WATER|COMBINED",
   "provider":"utility company name or Unknown","accountNumber":"account number or N/A",
-  "billingPeriod":"billing period dates or N/A","totalCharged":"$XXX.XX","totalKwh":"XXX kWh","ratePerKwh":"$X.XXX",
+  "billingPeriod":"billing period dates or N/A","totalCharged":"$XXX.XX",
+  "totalUsage":"XXX kWh or XXX therms or XXX gallons — use correct unit",
+  "ratePerUnit":"$X.XXX per kWh / therm / CCF / gallon — use correct unit",
   "billStatus":"SUSPICIOUS|LIKELY_CORRECT|NEEDS_REVIEW","billStatusReason":"brief explanation",
   "suspiciousCharges":["array or empty"],"potentialErrors":["array or empty"],
-  "usageRating":"LOW|AVERAGE|HIGH|VERY_HIGH","usageRatingExplanation":"explanation",
+  "usageRating":"LOW|AVERAGE|HIGH|VERY_HIGH","usageRatingExplanation":"explanation with appropriate benchmark",
   "regionalComparison":{"yourBill":"$XXX","regionalAverage":"$XXX","percentageDifference":"+/-XX% above/below average","comparisonNote":"context"},
   "recommendations":{
     "negotiation":[{"title":"","description":"","estimatedSavings":"$XX/month","difficulty":"Easy|Medium|Hard"}],
@@ -58,7 +81,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 }`;
 
 // ─── CHAT PROMPT ───────────────────────────────────────────────────────────────
-const buildChatPrompt = (r) => `You are an expert energy analyst. A homeowner has questions about their specific analyzed bill. Full analysis:
+const buildChatPrompt = (r) => `You are an expert utility bill analyst specializing in electricity, gas, and water bills. A customer has questions about their specific analyzed bill. Full analysis:
 ${JSON.stringify(r, null, 2)}
 Answer directly using this bill's exact data. Provide exact scripts for calling the utility. Keep responses to 2-5 sentences unless steps are needed. Never invent numbers.`;
 
@@ -133,6 +156,9 @@ const SL = {SUSPICIOUS:"⚠ SUSPICIOUS",NEEDS_REVIEW:"◉ NEEDS REVIEW",LIKELY_C
 const UC = {LOW:"#34C759",AVERAGE:"#38BDF8",HIGH:"#FF9500",VERY_HIGH:"#FF3B30"};
 const CAT_LABELS = {negotiation:"Negotiation",ratePlans:"Rate Plans",providers:"Providers",equipment:"Equipment",behavioral:"Habits",incentives:"Rebates"};
 const CAT_ICONS = {negotiation:"💬",ratePlans:"📊",providers:"🔄",equipment:"⚙️",behavioral:"🧠",incentives:"💰"};
+
+const BILL_TYPE_ICON = {"ELECTRIC":"⚡","GAS":"🔥","WATER":"💧","COMBINED":"🏭"};
+const BILL_TYPE_COLOR = {"ELECTRIC":"#38BDF8","GAS":"#FF9500","WATER":"#34C759","COMBINED":"#A78BFA"};
 
 const shortPeriod = (p) => {
   if(!p||p==="N/A") return "Unknown";
@@ -231,7 +257,7 @@ function buildReport(d, completedActions) {
   <div class="hdr"><div class="lbl">⚡ EnergyAudit AI · Report</div><div class="ttl">Energy Bill Analysis</div><div class="sub">AI-Powered Billing Verification &amp; Cost Reduction Report</div><div class="meta"><div class="ml"><label>Provider</label><span>${d.provider}</span></div><div class="ml"><label>Period</label><span>${d.billingPeriod}</span></div><div class="ml"><label>Generated</label><span>${now}</span></div><div class="ml"><label>Status</label><br><span class="bdg" style="background:${sc}">${d.billStatus.replace("_"," ")}</span></div></div></div>
   <div class="body">
   <div class="pri"><div class="pl">★ Priority Action</div><div class="pt">${d.priorityAction}</div></div>
-  <div class="sec"><div class="st">Bill Summary</div><div class="g3"><div class="stat"><div class="sl">Total Charged</div><div class="sv">${d.totalCharged}</div></div><div class="stat"><div class="sl">Usage</div><div class="sv">${d.totalKwh}</div></div><div class="stat"><div class="sl">Rate/kWh</div><div class="sv">${d.ratePerKwh}</div></div></div></div>
+  <div class="sec"><div class="st">Bill Summary</div><div class="g3"><div class="stat"><div class="sl">Total Charged</div><div class="sv">${d.totalCharged}</div></div><div class="stat"><div class="sl">Usage</div><div class="sv">${d.totalUsage||d.totalKwh}</div></div><div class="stat"><div class="sl">Rate/Unit</div><div class="sv">${d.ratePerUnit||d.ratePerKwh}</div></div></div></div>
   <div class="sec"><div class="st">Regional Comparison</div><div class="g3"><div class="stat"><div class="sl">Your Bill</div><div class="sv">${d.regionalComparison.yourBill}</div></div><div class="stat"><div class="sl">Regional Avg</div><div class="sv" style="color:#059669">${d.regionalComparison.regionalAverage}</div></div><div class="stat"><div class="sl">Difference</div><div class="sv" style="color:${d.regionalComparison.percentageDifference.startsWith('+')?'#dc2626':'#059669'}">${d.regionalComparison.percentageDifference}</div></div></div></div>
   <div class="sec">
   <div class="sv2" style="margin-bottom:18px">
@@ -1065,7 +1091,7 @@ export default function App() {
                           </button>
                         )}
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:"12px",fontWeight:"600",color:deleteMode&&isDeleteSelected?"#FF6B6B":T.text,marginBottom:"2px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{bill.result.provider}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:"12px",fontWeight:"600",color:deleteMode&&isDeleteSelected?"#FF6B6B":T.text,marginBottom:"2px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{BILL_TYPE_ICON[bill.result.billType]||"⚡"} {bill.result.provider}</div>
                           <div style={{fontSize:"10px",color:T.textDim}}>{bill.result.billingPeriod}</div>
                         </div>
                         {bDone>0&&<div style={{fontSize:"10px",color:"#34C759",fontFamily:"monospace",flexShrink:0}}>✓ {bDone}/{bRecs.length}</div>}
@@ -1105,7 +1131,7 @@ export default function App() {
                   <span style={{color:T.textFaint}}>·</span>
                   <span style={{fontFamily:"'DM Serif Display',serif",fontSize:"19px",color:T.text}}>{r.billingPeriod}</span>
                 </div>
-                <div style={{fontSize:"11px",color:T.textDim}}>{r.provider} · {new Date(selectedBill.analyzedAt).toLocaleDateString()}</div>
+                <div style={{fontSize:"11px",color:T.textDim,display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}><span>{r.provider} · {new Date(selectedBill.analyzedAt).toLocaleDateString()}</span>{r.billType&&<span style={{background:(BILL_TYPE_COLOR[r.billType]||"#38BDF8")+"22",color:BILL_TYPE_COLOR[r.billType]||"#38BDF8",border:`1px solid ${(BILL_TYPE_COLOR[r.billType]||"#38BDF8")}44`,padding:"1px 8px",borderRadius:"4px",fontSize:"10px",fontWeight:"700",fontFamily:"monospace"}}>{BILL_TYPE_ICON[r.billType]} {r.billType}</span>}</div>
               </div>
               <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
                 {billCompleted.length>0&&(
@@ -1124,7 +1150,7 @@ export default function App() {
 
             {/* Stats */}
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:"9px",marginBottom:"12px"}}>
-              {[{label:"Total Charged",v:r.totalCharged,c:T.text},{label:"Usage",v:r.totalKwh,c:"#38BDF8"},{label:"Rate/kWh",v:r.ratePerKwh,c:"#FF9500"},{label:"vs. Regional Avg",v:r.regionalComparison.percentageDifference,c:r.regionalComparison.percentageDifference?.startsWith("+")?"#FF3B30":"#34C759"}].map(s=>(
+              {[{label:"Total Charged",v:r.totalCharged,c:T.text},{label:"Usage",v:r.totalUsage||r.totalKwh,c:BILL_TYPE_COLOR[r.billType]||"#38BDF8"},{label:"Rate/Unit",v:r.ratePerUnit||r.ratePerKwh,c:"#FF9500"},{label:"vs. Regional Avg",v:r.regionalComparison.percentageDifference,c:r.regionalComparison.percentageDifference?.startsWith("+")?"#FF3B30":"#34C759"}].map(s=>(
                 <div key={s.label} style={{...CARD}}>
                   <div style={{fontSize:"9px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:"5px"}}>{s.label}</div>
                   <div style={{fontFamily:"'DM Mono',monospace",fontSize:"18px",fontWeight:"700",color:s.c}}>{s.v}</div>
