@@ -918,7 +918,7 @@ export default function App() {
       {/* ── TOPBAR ── */}
       <div style={{borderBottom:`1px solid ${T.topbarBorder}`,padding:isMobile?"10px 14px":"12px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,background:T.topbar,zIndex:100,backdropFilter:"blur(10px)",flexWrap:"wrap",gap:"8px"}}>
         <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-          <img src="/logo.svg" alt="EnergyAudit AI" style={{width:"36px",height:"36px",borderRadius:"9px",boxShadow:"0 2px 12px rgba(56,189,248,.35)",flexShrink:0}}/>
+          <img src="/logo.svg" alt="EnergyAudit AI" style={{width:"44px",height:"44px",borderRadius:"10px",boxShadow:"0 0 12px rgba(56,189,248,.5), 0 0 24px rgba(56,189,248,.2), 0 2px 8px rgba(0,0,0,.4)",flexShrink:0,border:"1px solid rgba(56,189,248,.3)"}}/>
           <div>
             <div style={{fontFamily:"'DM Mono',monospace",fontSize:"13px",fontWeight:"600",letterSpacing:"0.02em"}}>EnergyAudit<span style={{color:"#38BDF8"}}>AI</span></div>
             <div style={{fontSize:"8px",color:T.textDim,letterSpacing:"0.16em",textTransform:"uppercase"}}>Bill Intelligence</div>

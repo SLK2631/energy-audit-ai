@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
   <defs>
     <!-- Glow filters -->
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="#1a3a5c" stop-opacity="0.8"/><stop offset="100%" stop-color="#07080f" stop-opacity="0"/></radialGradient>
     <filter id="glow-soft" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
@@ -41,13 +42,13 @@
   </defs>
 
   <!-- Background -->
-  <rect width="120" height="120" fill="#07080f" rx="20"/>
+  <rect width="120" height="120" fill="#0c1020" rx="20"/><rect width="120" height="120" fill="url(#bgGlow)" rx="20" opacity="0.4"/>
 
   <!-- Corner bracket decorations -->
-  <path d="M6,18 L6,6 L18,6" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.4"/>
-  <path d="M102,6 L114,6 L114,18" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.4"/>
-  <path d="M6,102 L6,114 L18,114" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.4"/>
-  <path d="M102,114 L114,114 L114,102" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.4"/>
+  <path d="M6,18 L6,6 L18,6" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/>
+  <path d="M102,6 L114,6 L114,18" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/>
+  <path d="M6,102 L6,114 L18,114" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/>
+  <path d="M102,114 L114,114 L114,102" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/>
 
   <!--
     Hexagon: pointed top, center (60,60), radius 43
@@ -74,23 +75,23 @@
 
   <!-- Hex outer ambient glow -->
   <polygon points="60,17 97.2,38.5 97.2,81.5 60,103 22.8,81.5 22.8,38.5"
-    fill="none" stroke="#38BDF8" stroke-width="8" opacity="0.08"/>
+    fill="none" stroke="#38BDF8" stroke-width="10" opacity="0.15"/>
 
   <!-- Main hexagon border -->
   <polygon points="60,17 97.2,38.5 97.2,81.5 60,103 22.8,81.5 22.8,38.5"
-    fill="none" stroke="#38BDF8" stroke-width="1.8" filter="url(#glow-soft)" opacity="0.9"/>
+    fill="none" stroke="#38BDF8" stroke-width="2.2" filter="url(#glow-soft)" opacity="1"/>
 
   <!-- Inner hex highlight (thinner, brighter) -->
   <polygon points="60,17 97.2,38.5 97.2,81.5 60,103 22.8,81.5 22.8,38.5"
-    fill="none" stroke="#67e8f9" stroke-width="0.6" opacity="0.5"/>
+    fill="none" stroke="#67e8f9" stroke-width="0.8" opacity="0.7"/>
 
   <!-- Division lines (dashed) -->
   <line x1="60" y1="60" x2="60" y2="17"
-    stroke="#22d3ee" stroke-width="0.9" opacity="0.4" stroke-dasharray="4,3"/>
+    stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/>
   <line x1="60" y1="60" x2="97.2" y2="81.5"
-    stroke="#22d3ee" stroke-width="0.9" opacity="0.4" stroke-dasharray="4,3"/>
+    stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/>
   <line x1="60" y1="60" x2="22.8" y2="81.5"
-    stroke="#22d3ee" stroke-width="0.9" opacity="0.4" stroke-dasharray="4,3"/>
+    stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/>
 
   <!-- Glowing nodes at the 3 division vertices -->
   <circle cx="60"   cy="17"   r="4" fill="#00d4ff" filter="url(#glow-strong)" opacity="0.95"/>
