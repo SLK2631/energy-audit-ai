@@ -254,7 +254,14 @@ function buildReport(d, completedActions) {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Energy Audit</title><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;600&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#f9fafb;color:#1a1a2e;-webkit-print-color-adjust:exact}
   .page{max-width:960px;margin:0 auto;background:#fff}.hdr{background:#0d0d1a;color:#fff;padding:44px 52px 36px}.lbl{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:#38BDF8;margin-bottom:10px;text-transform:uppercase}.ttl{font-family:'DM Serif Display',serif;font-size:36px;margin-bottom:6px}.sub{font-size:13px;color:#8892a4;margin-bottom:28px}.meta{display:flex;gap:44px;flex-wrap:wrap}.ml label{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:3px}.ml span{font-family:'DM Mono',monospace;font-size:13px;color:#fff}.bdg{display:inline-block;padding:3px 12px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:#fff;margin-top:3px}.body{padding:44px 52px}.sec{margin-bottom:36px}.st{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #f3f4f6;padding-bottom:8px;margin-bottom:18px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:18px}.stat{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:18px}.sl{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}.sv{font-family:'DM Mono',monospace;font-size:20px;font-weight:600}.pri{background:linear-gradient(135deg,#0d0d1a,#1a1a3e);color:#fff;border-radius:10px;padding:20px 24px;margin-bottom:28px;border-left:4px solid #38BDF8}.pl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:#38BDF8;margin-bottom:6px}.pt{font-size:14px;line-height:1.6;color:#e5e7eb}table{width:100%;border-collapse:collapse}th{background:#f9fafb;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;text-align:left;padding:9px 11px;border-bottom:2px solid #e5e7eb}td{padding:9px 11px;border-bottom:1px solid #e5e7eb;font-size:12px}.done td{background:#f0fdf4}.sv2{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #6ee7b7;border-radius:10px;padding:20px 24px;margin-top:28px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}.sv2l{font-size:12px;color:#065f46;margin-bottom:3px}.sv2v{font-family:'DM Mono',monospace;font-size:26px;font-weight:700;color:#047857}.ftr{background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 52px;display:flex;justify-content:space-between;align-items:center}.fb{font-family:'DM Mono',monospace;font-size:12px;color:#6b7280}.fd{font-size:10px;color:#9ca3af;max-width:480px;line-height:1.5}.meth{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:28px 32px;margin-bottom:36px}.meth-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px}.src-cat{margin-bottom:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:#38BDF8;letter-spacing:.1em;text-transform:uppercase}.src-item{margin-bottom:10px}.src-name{font-size:12px;font-weight:600;color:#1a1a2e;margin-bottom:2px}.src-desc{font-size:11px;color:#6b7280;line-height:1.5}.src-url{font-size:10px;color:#0ea5e9;font-family:'DM Mono',monospace}.disc{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:14px 18px;margin-top:28px;font-size:11px;color:#92400e;line-height:1.6}
   </style></head><body><div class="page">
-  <div class="hdr"><div class="lbl">⚡ EnergyAudit AI · ${({"ELECTRIC":"Electric Bill","GAS":"Gas Bill","WATER":"Water Bill","COMBINED":"Combined Utility Bill"})[d.billType]||"Utility Bill"} Analysis</div><div class="ttl">Energy Bill Analysis</div><div class="sub">AI-Powered Billing Verification &amp; Cost Reduction Report</div><div class="meta"><div class="ml"><label>Provider</label><span>${d.provider}</span></div><div class="ml"><label>Period</label><span>${d.billingPeriod}</span></div><div class="ml"><label>Generated</label><span>${now}</span></div><div class="ml"><label>Status</label><br><span class="bdg" style="background:${sc}">${d.billStatus.replace("_"," ")}</span></div></div></div>
+  <div class="hdr">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="52" height="52" style="border-radius:10px;box-shadow:0 0 16px rgba(56,189,248,0.5),0 2px 8px rgba(0,0,0,0.4);border:1px solid rgba(56,189,248,0.3);flex-shrink:0"><defs><radialGradient id="bgGlow" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="#1a3a5c" stop-opacity="0.8"/><stop offset="100%" stop-color="#07080f" stop-opacity="0"/></radialGradient><filter id="gs" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="gst" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="fg" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="60%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#67e8f9"/></linearGradient><linearGradient id="dg" x1="0.3" y1="0" x2="0.7" y2="1"><stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#38BDF8"/></linearGradient><linearGradient id="bg" x1="0" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#67e8f9"/><stop offset="100%" stop-color="#00d4ff"/></linearGradient></defs><rect width="120" height="120" fill="#0c1020" rx="20"/><rect width="120" height="120" fill="url(#bgGlow)" rx="20" opacity="0.4"/><path d="M6,18 L6,6 L18,6" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/><path d="M102,6 L114,6 L114,18" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/><path d="M6,102 L6,114 L18,114" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/><path d="M102,114 L114,114 L114,102" fill="none" stroke="#38BDF8" stroke-width="1.5" opacity="0.7"/><path d="M60,17 L97.2,38.5 L97.2,81.5 L60,103 L22.8,81.5 L22.8,38.5" fill="none" stroke="#38BDF8" stroke-width="10" opacity="0.15"/><polygon points="60,17 97.2,38.5 97.2,81.5 60,103 22.8,81.5 22.8,38.5" fill="none" stroke="#38BDF8" stroke-width="2.2" filter="url(#gs)" opacity="1"/><polygon points="60,17 97.2,38.5 97.2,81.5 60,103 22.8,81.5 22.8,38.5" fill="none" stroke="#67e8f9" stroke-width="0.8" opacity="0.7"/><line x1="60" y1="60" x2="60" y2="17" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><line x1="60" y1="60" x2="97.2" y2="81.5" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><line x1="60" y1="60" x2="22.8" y2="81.5" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><circle cx="60" cy="17" r="4" fill="#00d4ff" filter="url(#gst)" opacity="0.95"/><circle cx="97.2" cy="81.5" r="4" fill="#00d4ff" filter="url(#gst)" opacity="0.95"/><circle cx="22.8" cy="81.5" r="4" fill="#00d4ff" filter="url(#gst)" opacity="0.95"/><circle cx="97.2" cy="38.5" r="2.2" fill="#38BDF8" opacity="0.65" filter="url(#gs)"/><circle cx="22.8" cy="38.5" r="2.2" fill="#38BDF8" opacity="0.65" filter="url(#gs)"/><circle cx="60" cy="103" r="2.2" fill="#38BDF8" opacity="0.65" filter="url(#gs)"/><circle cx="60" cy="60" r="2.8" fill="#67e8f9" filter="url(#gst)" opacity="0.9"/><path d="M83.5,37 L73,51.5 L79.5,51.5 L74.5,63 L86,47 L79,47 Z" fill="url(#bg)" filter="url(#gs)" opacity="0.97"/><path d="M60,71.5 C60,71.5 50.5,80 50.5,86.5 C50.5,92.5 54.7,97.5 60,97.5 C65.3,97.5 69.5,92.5 69.5,86.5 C69.5,80 60,71.5 60,71.5 Z" fill="url(#dg)" filter="url(#gs)" opacity="0.93"/><ellipse cx="56.5" cy="83.5" rx="3" ry="4" fill="rgba(255,255,255,0.3)" opacity="0.8"/><path d="M41,36.5 C39.5,40 35.5,45.5 35.5,52 C35.5,58.5 38,63 41,64.5 C44,63 46.5,58.5 46.5,52 C46.5,48 44.5,44 43.5,40.5 C43.5,40.5 45.5,45 45.5,50 C45.5,54 43.5,57.5 41,59 C38.5,57.5 36.5,54 36.5,50 C36.5,44.5 41,36.5 41,36.5 Z" fill="url(#fg)" filter="url(#gs)" opacity="0.95"/><path d="M41,47 C40,49.5 38.5,52 38.5,54.5 C38.5,57.5 39.5,59.5 41,60.5 C42.5,59.5 43.5,57.5 43.5,54.5 C43.5,52 42,49.5 41,47 Z" fill="rgba(255,255,255,0.22)"/></svg>
+    <div>
+      <div class="lbl" style="margin-bottom:4px">EnergyAudit AI</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#6b87a4;letter-spacing:0.08em">${({"ELECTRIC":"⚡ Electric Bill","GAS":"🔥 Gas Bill","WATER":"💧 Water Bill","COMBINED":"🏭 Combined Utility Bill"})[d.billType]||"⚡ Utility Bill"} Analysis</div>
+    </div>
+  </div><div class="ttl">Energy Bill Analysis</div><div class="sub">AI-Powered Billing Verification &amp; Cost Reduction Report</div><div class="meta"><div class="ml"><label>Provider</label><span>${d.provider}</span></div><div class="ml"><label>Period</label><span>${d.billingPeriod}</span></div><div class="ml"><label>Generated</label><span>${now}</span></div><div class="ml"><label>Status</label><br><span class="bdg" style="background:${sc}">${d.billStatus.replace("_"," ")}</span></div></div></div>
   <div class="body">
   <div class="pri"><div class="pl">★ Priority Action</div><div class="pt">${d.priorityAction}</div></div>
   <div class="sec"><div class="st">Bill Summary</div><div class="g3"><div class="stat"><div class="sl">Total Charged</div><div class="sv">${d.totalCharged}</div></div><div class="stat"><div class="sl">Usage</div><div class="sv">${d.totalUsage||d.totalKwh}</div></div><div class="stat"><div class="sl">Rate/Unit</div><div class="sv">${d.ratePerUnit||d.ratePerKwh}</div></div></div></div>
@@ -303,6 +310,155 @@ function buildReport(d, completedActions) {
   </div><div class="ftr"><div class="fb">⚡ EnergyAudit AI · ${now}</div><div class="fd">AI-generated report. Verify all recommendations with your utility provider and a licensed energy auditor before major decisions.</div></div></div></body></html>`;
 }
 
+// ─── COMPARE REPORT HTML ──────────────────────────────────────────────────────
+function buildCompareReport(left, right, completedActions) {
+  const now = new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
+  const rl = left.result, rr = right.result;
+  const parseN = (s) => parseFloat((s||"0").replace(/[^0-9.]/g,""))||0;
+  const charged_l = parseN(rl.totalCharged), charged_r = parseN(rr.totalCharged);
+  const kwh_l = parseN(rl.totalUsage||rl.totalKwh), kwh_r = parseN(rr.totalUsage||rr.totalKwh);
+  const rate_l = parseN(rl.ratePerUnit||rl.ratePerKwh), rate_r = parseN(rr.ratePerUnit||rr.ratePerKwh);
+  const sav_l = parseN(rl.totalPotentialMonthlySavings?.split("–")[0]);
+  const sav_r = parseN(rr.totalPotentialMonthlySavings?.split("–")[0]);
+  const sc = {SUSPICIOUS:"#FF3B30",NEEDS_REVIEW:"#FF9500",LIKELY_CORRECT:"#34C759"};
+  const deltaLabel = (vA, vB, prefix="$", invert=false) => {
+    const diff = vB - vA;
+    if(diff === 0) return {label:"—", color:"#6b7280"};
+    const pct = vA !== 0 ? ((diff/vA)*100).toFixed(1) : 0;
+    const better = invert ? diff < 0 : diff > 0;
+    const color = better ? "#059669" : "#dc2626";
+    const sign = diff > 0 ? "+" : "";
+    return {label:`${sign}${prefix}${Math.abs(diff).toFixed(prefix==="$"?2:0)} (${sign}${pct}%)`, color};
+  };
+  const metrics = [
+    {label:"Total Charged", vl:`$${charged_l.toFixed(2)}`, vr:`$${charged_r.toFixed(2)}`, d:deltaLabel(charged_l,charged_r,"$",true)},
+    {label:"Usage", vl:rl.totalUsage||`${kwh_l} kWh`, vr:rr.totalUsage||`${kwh_r} kWh`, d:deltaLabel(kwh_l,kwh_r,"",true)},
+    {label:"Rate/Unit", vl:rl.ratePerUnit||`$${rate_l.toFixed(3)}`, vr:rr.ratePerUnit||`$${rate_r.toFixed(3)}`, d:deltaLabel(rate_l,rate_r,"$",true)},
+    {label:"Savings Potential", vl:`$${sav_l}/mo`, vr:`$${sav_r}/mo`, d:deltaLabel(sav_l,sav_r,"$",true)},
+  ];
+  const cats = ["negotiation","ratePlans","providers","equipment","behavioral","incentives"];
+  const catLabels = {negotiation:"Negotiation",ratePlans:"Rate Plans",providers:"Providers",equipment:"Equipment",behavioral:"Habits",incentives:"Rebates"};
+  const recsL = cats.flatMap(cat=>(rl.recommendations[cat]||[]).map(r=>({...r,cat:catLabels[cat]})));
+  const recsR = cats.flatMap(cat=>(rr.recommendations[cat]||[]).map(r=>({...r,cat:catLabels[cat]})));
+  const titlesL = new Set(recsL.map(r=>r.title));
+  const titlesR = new Set(recsR.map(r=>r.title));
+  const shared = recsL.filter(r=>titlesR.has(r.title));
+  const onlyL = recsL.filter(r=>!titlesR.has(r.title));
+  const onlyR = recsR.filter(r=>!titlesL.has(r.title));
+  const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="48" height="48" style="border-radius:9px;box-shadow:0 0 14px rgba(56,189,248,0.5);border:1px solid rgba(56,189,248,0.3);flex-shrink:0"><defs><radialGradient id="bgGlow" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="#1a3a5c" stop-opacity="0.8"/><stop offset="100%" stop-color="#07080f" stop-opacity="0"/></radialGradient><filter id="gs" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="gst" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="fg" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#67e8f9"/></linearGradient><linearGradient id="dg" x1="0.3" y1="0" x2="0.7" y2="1"><stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#38BDF8"/></linearGradient><linearGradient id="bg2" x1="0" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#67e8f9"/><stop offset="100%" stop-color="#00d4ff"/></linearGradient></defs><rect width="120" height="120" fill="#0c1020" rx="20"/><rect width="120" height="120" fill="url(#bgGlow)" rx="20" opacity="0.4"/><polygon points="60,17 97.2,38.5 97.2,81.5 60,103 22.8,81.5 22.8,38.5" fill="none" stroke="#38BDF8" stroke-width="2.2" filter="url(#gs)" opacity="1"/><line x1="60" y1="60" x2="60" y2="17" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><line x1="60" y1="60" x2="97.2" y2="81.5" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><line x1="60" y1="60" x2="22.8" y2="81.5" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><circle cx="60" cy="17" r="4" fill="#00d4ff" filter="url(#gst)" opacity="0.95"/><circle cx="97.2" cy="81.5" r="4" fill="#00d4ff" filter="url(#gst)" opacity="0.95"/><circle cx="22.8" cy="81.5" r="4" fill="#00d4ff" filter="url(#gst)" opacity="0.95"/><circle cx="60" cy="60" r="2.8" fill="#67e8f9" filter="url(#gst)" opacity="0.9"/><path d="M83.5,37 L73,51.5 L79.5,51.5 L74.5,63 L86,47 L79,47 Z" fill="url(#bg2)" filter="url(#gs)" opacity="0.97"/><path d="M60,71.5 C60,71.5 50.5,80 50.5,86.5 C50.5,92.5 54.7,97.5 60,97.5 C65.3,97.5 69.5,92.5 69.5,86.5 C69.5,80 60,71.5 60,71.5 Z" fill="url(#dg)" filter="url(#gs)" opacity="0.93"/><path d="M41,36.5 C39.5,40 35.5,45.5 35.5,52 C35.5,58.5 38,63 41,64.5 C44,63 46.5,58.5 46.5,52 C46.5,48 44.5,44 43.5,40.5 C43.5,40.5 45.5,45 45.5,50 C45.5,54 43.5,57.5 41,59 C38.5,57.5 36.5,54 36.5,50 C36.5,44.5 41,36.5 41,36.5 Z" fill="url(#fg)" filter="url(#gs)" opacity="0.95"/></svg>`;
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bill Comparison Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;600&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#f9fafb;color:#1a1a2e;-webkit-print-color-adjust:exact}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{box-shadow:none!important}}
+    @page{margin:0;size:A4}
+    .page{max-width:960px;margin:0 auto;background:#fff}
+    .hdr{background:#0d0d1a;color:#fff;padding:36px 48px 32px}
+    .lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;color:#38BDF8;text-transform:uppercase;margin-bottom:3px}
+    .ttl{font-family:'DM Serif Display',serif;font-size:30px;margin-bottom:6px}
+    .sub{font-size:12px;color:#8892a4;margin-bottom:24px}
+    .meta{display:flex;gap:36px;flex-wrap:wrap}
+    .ml label{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:3px}
+    .ml span{font-family:'DM Mono',monospace;font-size:12px;color:#fff}
+    .body{padding:36px 48px}
+    .sec{margin-bottom:32px}
+    .st{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #f3f4f6;padding-bottom:7px;margin-bottom:16px}
+    .bills-grid{display:grid;grid-template-columns:1fr 60px 1fr;gap:0;margin-bottom:20px;align-items:center}
+    .bill-card-a{background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.25);border-radius:9px;padding:14px 18px}
+    .bill-card-b{background:rgba(5,150,105,0.06);border:1px solid rgba(5,150,105,0.25);border-radius:9px;padding:14px 18px}
+    .bill-label{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+    .bill-provider{font-size:13px;font-weight:700;margin-bottom:2px}
+    .bill-period{font-size:11px;color:#6b7280}
+    .vs-divider{text-align:center;font-family:'DM Mono',monospace;font-weight:700;color:#9ca3af;font-size:13px}
+    .metrics-table{width:100%;border-collapse:collapse}
+    .metrics-table tr{border-bottom:1px solid #f3f4f6}
+    .metrics-table td{padding:11px 14px;font-size:13px}
+    .metrics-table tr:nth-child(even){background:#f9fafb}
+    .metric-label{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;text-align:center;vertical-align:middle}
+    .metric-val-a{font-family:'DM Mono',monospace;font-weight:700;color:#0ea5e9}
+    .metric-val-b{font-family:'DM Mono',monospace;font-weight:700;color:#059669;text-align:right}
+    .delta{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;text-align:center}
+    .recs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .rec-col-title{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+    .rec-item{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:11px}
+    .rec-title{font-weight:600;margin-bottom:2px}
+    .rec-savings{color:#059669;font-family:'DM Mono',monospace;font-size:10px;font-weight:700}
+    .shared-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .shared-item{background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:7px 10px;font-size:11px}
+    .ftr{background:#f9fafb;border-top:1px solid #e5e7eb;padding:16px 48px;display:flex;justify-content:space-between;align-items:center}
+    .fb{font-family:'DM Mono',monospace;font-size:11px;color:#6b7280}
+    .fd{font-size:10px;color:#9ca3af;max-width:450px;line-height:1.5}
+    .bdg{display:inline-block;padding:2px 8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:#fff;margin-top:4px}
+  </style></head><body><div class="page">
+  <div class="hdr">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+      ${LOGO_SVG}
+      <div><div class="lbl">EnergyAudit AI</div><div style="font-family:'DM Mono',monospace;font-size:11px;color:#6b87a4;letter-spacing:0.08em">⚖ Bill Comparison Report</div></div>
+    </div>
+    <div class="ttl">Bill Comparison</div>
+    <div class="sub">${rl.billingPeriod} vs ${rr.billingPeriod}</div>
+    <div class="meta">
+      <div class="ml"><label>Generated</label><span>${now}</span></div>
+      <div class="ml"><label>Provider A</label><span>${rl.provider}</span></div>
+      <div class="ml"><label>Provider B</label><span>${rr.provider}</span></div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="sec">
+      <div class="st">Bills Being Compared</div>
+      <div class="bills-grid">
+        <div class="bill-card-a">
+          <div class="bill-label" style="color:#0ea5e9">Bill A · Earlier</div>
+          <div class="bill-provider">${rl.provider}</div>
+          <div class="bill-period">${rl.billingPeriod}</div>
+          <span class="bdg" style="background:${sc[rl.billStatus]||'#FF9500'}">${rl.billStatus.replace("_"," ")}</span>
+        </div>
+        <div class="vs-divider">vs</div>
+        <div class="bill-card-b">
+          <div class="bill-label" style="color:#059669">Bill B · Later</div>
+          <div class="bill-provider">${rr.provider}</div>
+          <div class="bill-period">${rr.billingPeriod}</div>
+          <span class="bdg" style="background:${sc[rr.billStatus]||'#FF9500'}">${rr.billStatus.replace("_"," ")}</span>
+        </div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="st">Metric Comparison</div>
+      <table class="metrics-table">
+        <thead><tr style="background:#f9fafb">
+          <th style="padding:9px 14px;font-size:10px;color:#0ea5e9;font-family:'DM Mono',monospace;text-align:left;border-bottom:2px solid #e5e7eb">Bill A</th>
+          <th style="padding:9px 14px;font-size:10px;color:#6b7280;text-align:center;border-bottom:2px solid #e5e7eb;letter-spacing:.08em;text-transform:uppercase">Metric</th>
+          <th style="padding:9px 14px;font-size:10px;color:#6b7280;text-align:center;border-bottom:2px solid #e5e7eb;letter-spacing:.08em;text-transform:uppercase">Change</th>
+          <th style="padding:9px 14px;font-size:10px;color:#059669;font-family:'DM Mono',monospace;text-align:right;border-bottom:2px solid #e5e7eb">Bill B</th>
+        </tr></thead>
+        <tbody>${metrics.map(m=>`<tr>
+          <td class="metric-val-a">${m.vl}</td>
+          <td class="metric-label">${m.label}</td>
+          <td class="delta" style="color:${m.d.color}">${m.d.label}</td>
+          <td class="metric-val-b">${m.vr}</td>
+        </tr>`).join("")}</tbody>
+      </table>
+    </div>
+    <div class="sec">
+      <div class="st">Recommendations Analysis</div>
+      <div class="recs-grid">
+        <div>
+          <div class="rec-col-title" style="color:#0ea5e9">Only in Bill A (${onlyL.length})</div>
+          ${onlyL.length>0?onlyL.map(r=>`<div class="rec-item"><div class="rec-title">${r.title}</div><div class="rec-savings">${r.estimatedSavings}</div></div>`).join(""):`<div style="font-size:11px;color:#9ca3af;padding:8px 0">All recommendations also appear in Bill B</div>`}
+        </div>
+        <div>
+          <div class="rec-col-title" style="color:#059669">Only in Bill B (${onlyR.length})</div>
+          ${onlyR.length>0?onlyR.map(r=>`<div class="rec-item"><div class="rec-title">${r.title}</div><div class="rec-savings">${r.estimatedSavings}</div></div>`).join(""):`<div style="font-size:11px;color:#9ca3af;padding:8px 0">All recommendations also appear in Bill A</div>`}
+        </div>
+      </div>
+      ${shared.length>0?`<div style="margin-top:12px"><div class="rec-col-title" style="color:#d97706;margin-bottom:8px">Persistent Issues — In Both Bills (${shared.length})</div><div class="shared-grid">${shared.map(r=>`<div class="shared-item"><div class="rec-title">${r.title}</div><div class="rec-savings">${r.estimatedSavings}</div></div>`).join("")}</div></div>`:""}
+    </div>
+  </div>
+  <div class="ftr"><div class="fb">⚡ EnergyAudit AI · ${now}</div><div class="fd">AI-generated comparison report. Verify all findings against current published utility tariff schedules before taking action.</div></div>
+</div></body></html>`;
+}
+
 // ─── TREND KPIs ───────────────────────────────────────────────────────────────
 const TrendKPIs = ({bills, completedActions, T}) => {
   if(!bills.length) return null;
@@ -321,7 +477,7 @@ const TrendKPIs = ({bills, completedActions, T}) => {
         {label:"Cost Trend",v:bills.length>1?`${cd>=0?"+":""}$${cd.toFixed(2)}`:"—",c:cd>10?"#FF3B30":cd<-10?"#34C759":"#FF9500",note:"first → latest"},
         {label:"Usage Trend",v:bills.length>1?`${kd>=0?"+":""}${kd.toFixed(0)} kWh`:"—",c:kd>50?"#FF9500":kd<-50?"#34C759":T.textSub,note:"first → latest"},
         {label:"Flagged Bills",v:`${susp}/${bills.length}`,c:susp>0?"#FF3B30":"#34C759",note:susp>0?"need attention":"all clear"},
-        {label:"Actions Completed",v:`${completed}/${totalRecs}`,c:completed>0?"#34C759":T.textSub,note:`$${Math.round(savLow*completed/(totalRecs||1))}+/mo saved`},
+        {label:"Actions Completed",v:`${completed}/${totalRecs}`,c:completed>0?"#34C759":T.textSub,note:completed>0?`$${[...completedActions].reduce((s,aid)=>{const b=bills.find(b=>aid.startsWith(b.id));if(!b)return s;const rec=allRecs(b).find(r=>actionId(r.billId,r.cat,r.title)===aid);return s+(rec?parseMonthlySavings(rec.estimatedSavings):0);},0).toFixed(0)}/mo saved`:"no actions yet"},
       ].map(x=>(
         <div key={x.label} style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"10px",padding:"16px 18px"}}>
           <div style={{fontSize:"9px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"6px"}}>{x.label}</div>
@@ -558,7 +714,7 @@ const BillChat = ({billResult, T}) => {
 };
 
 // ─── COMPARE VIEW ─────────────────────────────────────────────────────────────
-const CompareView = ({bills, compareIds, onClose, T, isMobile=false}) => {
+const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) => {
   const [a, b] = [...compareIds].map(id => bills.find(x=>x.id===id)).filter(Boolean);
   if (!a || !b) return null;
 
@@ -578,23 +734,23 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false}) => {
   };
 
   const charged_l = parseNum(rl.totalCharged), charged_r = parseNum(rr.totalCharged);
-  const kwh_l = parseNum(rl.totalKwh), kwh_r = parseNum(rr.totalKwh);
-  const rate_l = parseNum(rl.ratePerKwh), rate_r = parseNum(rr.ratePerKwh);
+  const kwh_l = parseNum(rl.totalUsage||rl.totalKwh), kwh_r = parseNum(rr.totalUsage||rr.totalKwh);
+  const rate_l = parseNum(rl.ratePerUnit||rl.ratePerKwh), rate_r = parseNum(rr.ratePerUnit||rr.ratePerKwh);
   const sav_l = parseNum(rl.totalPotentialMonthlySavings?.split("–")[0]);
   const sav_r = parseNum(rr.totalPotentialMonthlySavings?.split("–")[0]);
 
   const metrics = [
     { label:"Total Charged", vl:`$${charged_l.toFixed(2)}`, vr:`$${charged_r.toFixed(2)}`, d:delta(charged_l,charged_r,"$",true), cl:SC[rl.billStatus], cr:SC[rr.billStatus] },
-    { label:"Usage (kWh)", vl:`${kwh_l} kWh`, vr:`${kwh_r} kWh`, d:delta(kwh_l,kwh_r,"",true) },
-    { label:"Rate per kWh", vl:`$${rate_l.toFixed(3)}`, vr:`$${rate_r.toFixed(3)}`, d:delta(rate_l,rate_r,"$",true) },
+    { label:"Usage", vl:rl.totalUsage||`${kwh_l} kWh`, vr:rr.totalUsage||`${kwh_r} kWh`, d:delta(kwh_l,kwh_r,"",true) },
+    { label:"Rate/Unit", vl:rl.ratePerUnit||`$${rate_l.toFixed(3)}`, vr:rr.ratePerUnit||`$${rate_r.toFixed(3)}`, d:delta(rate_l,rate_r,"$",true) },
     { label:"Savings Potential", vl:`$${sav_l}/mo`, vr:`$${sav_r}/mo`, d:delta(sav_l,sav_r,"$",true) },
   ];
 
   // Bar chart data
   const barData = [
     { metric:"Cost ($)", left:charged_l, right:charged_r },
-    { metric:"Usage (kWh÷10)", left:+(kwh_l/10).toFixed(1), right:+(kwh_r/10).toFixed(1) },
-    { metric:"Rate (¢/kWh)", left:+(rate_l*100).toFixed(1), right:+(rate_r*100).toFixed(1) },
+    { metric:"Usage (÷10)", left:+(kwh_l/10).toFixed(1), right:+(kwh_r/10).toFixed(1) },
+    { metric:"Rate (cents)", left:+(rate_l*100).toFixed(1), right:+(rate_r*100).toFixed(1) },
     { metric:"Savings Pot ($)", left:sav_l, right:sav_r },
   ];
 
@@ -641,9 +797,10 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false}) => {
             <span style={{color:"#34C759",fontFamily:"monospace",fontWeight:"600"}}>{periodR}</span>
           </div>
         </div>
-        <button onClick={onClose} style={{background:T.bgCard,border:`1px solid ${T.border}`,color:T.textDim,padding:"7px 14px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontFamily:"monospace"}}>
-          ← Back to History
-        </button>
+        <div style={{display:"flex",gap:"8px"}}>
+          {onExport&&<button onClick={()=>onExport(left,right)} style={{background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",color:"#040d18",padding:"7px 14px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontWeight:"700",fontFamily:"monospace",boxShadow:"0 2px 8px rgba(56,189,248,.2)"}}>↓ PDF Report</button>}
+          <button onClick={onClose} style={{background:T.bgCard,border:`1px solid ${T.border}`,color:T.textDim,padding:"7px 14px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontFamily:"monospace"}}>← Back to History</button>
+        </div>
       </div>
 
       {/* Side-by-side column headers */}
@@ -816,6 +973,18 @@ export default function App() {
     });
   };
 
+  const dlCompareReport = (left, right) => {
+    const html = buildCompareReport(left, right, completedActions);
+    const printHtml = html.replace("</head>",`<style>@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{box-shadow:none!important}}@page{margin:0;size:A4}</style></head>`);
+    const blob = new Blob([printHtml], {type:"text/html"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "comparison-" + left.result.provider.replace(/[^a-z0-9]/gi,"-").toLowerCase() + "-" + Date.now() + ".html";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  };
+
   const loadDemo = ()=>{ setBills(DEMO_BILLS); setView("history"); };
   const deleteBill = (id)=>setBills(p=>p.filter(b=>b.id!==id));
   const deleteSelected = ()=>{ setBills(p=>p.filter(b=>!deleteIds.has(b.id))); setDeleteIds(new Set()); setDeleteMode(false); };
@@ -844,11 +1013,6 @@ export default function App() {
         }
         @page { margin: 0; size: A4; }
       </style>
-      <script>
-        window.onload = function() {
-          setTimeout(function() { window.print(); }, 600);
-        };
-      <\/script>
       </head>`
     );
     const blob = new Blob([printHtml], { type: "text/html" });
@@ -1150,7 +1314,7 @@ export default function App() {
 
         {/* ══ COMPARE ══ */}
         {view==="compare"&&compareIds.size===2&&(
-          <CompareView bills={bills} compareIds={compareIds} onClose={()=>setView("history")} T={T} isMobile={isMobile}/>
+          <CompareView bills={bills} compareIds={compareIds} onClose={()=>setView("history")} T={T} isMobile={isMobile} onExport={dlCompareReport}/>
         )}
 
         {/* ══ BILL DETAIL ══ */}
