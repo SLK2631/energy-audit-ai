@@ -150,7 +150,7 @@ const LIGHT = {
 };
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────────
-const parseNum = (s) => parseFloat((s||"0").replace(/[^0-9.]/g,""))||0;
+const parseNum = (s) => { if(!s) return 0; const clean=String(s).replace(/,/g,""); const m=clean.match(/[\d]+\.?[\d]*/); return m?parseFloat(m[0]):0; };
 const SC = {SUSPICIOUS:"#FF3B30",NEEDS_REVIEW:"#FF9500",LIKELY_CORRECT:"#34C759"};
 const SL = {SUSPICIOUS:"⚠ SUSPICIOUS",NEEDS_REVIEW:"◉ NEEDS REVIEW",LIKELY_CORRECT:"✓ CORRECT"};
 const UC = {LOW:"#34C759",AVERAGE:"#38BDF8",HIGH:"#FF9500",VERY_HIGH:"#FF3B30"};
@@ -170,9 +170,9 @@ const shortPeriod = (p) => {
 const parseMonthlySavings = (s) => {
   if(!s) return 0;
   if(/one.time|refund/i.test(s)) return 0; // one-time, not monthly
-  const nums = s.match(/\$?([\d,]+)/g);
-  if(!nums) return 0;
-  return parseFloat(nums[0].replace(/[$,]/g,""))||0;
+  const m = s.match(/[\d,]+\.?[\d]*/); if(!m) return 0;
+  const val = parseFloat(m[0].replace(/,/g,""))||0;
+  return Math.min(val, 500); // hard cap: no single rec saves more than $500/mo
 };
 
 const actionId = (billId, cat, title) => `${billId}::${cat}::${title}`;
@@ -188,7 +188,7 @@ const allRecs = (bill) => {
 
 // ─── SUB-COMPONENTS ────────────────────────────────────────────────────────────
 const StatusBadge = ({status, small}) => (
-  <span style={{background:SC[status],color:"#fff",padding:small?"2px 8px":"4px 12px",borderRadius:"4px",fontSize:small?"9px":"11px",fontWeight:"700",letterSpacing:"0.05em",fontFamily:"monospace",whiteSpace:"nowrap"}}>
+  <span style={{background:SC[status]||"#6B7280",color:"#fff",padding:small?"2px 8px":"4px 12px",borderRadius:"4px",fontSize:small?"9px":"11px",fontWeight:"700",letterSpacing:"0.05em",fontFamily:"monospace",whiteSpace:"nowrap"}}>
     {SL[status]}
   </span>
 );
@@ -314,12 +314,13 @@ function buildReport(d, completedActions) {
 function buildCompareReport(left, right, completedActions) {
   const now = new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
   const rl = left.result, rr = right.result;
-  const parseN = (s) => parseFloat((s||"0").replace(/[^0-9.]/g,""))||0;
+  const parseN = (s) => { if(!s) return 0; const clean=String(s).replace(/,/g,""); const m=clean.match(/[\d]+\.?[\d]*/); return m?parseFloat(m[0]):0; };
   const charged_l = parseN(rl.totalCharged), charged_r = parseN(rr.totalCharged);
   const kwh_l = parseN(rl.totalUsage||rl.totalKwh), kwh_r = parseN(rr.totalUsage||rr.totalKwh);
   const rate_l = parseN(rl.ratePerUnit||rl.ratePerKwh), rate_r = parseN(rr.ratePerUnit||rr.ratePerKwh);
-  const sav_l = parseN(rl.totalPotentialMonthlySavings?.split("–")[0]);
-  const sav_r = parseN(rr.totalPotentialMonthlySavings?.split("–")[0]);
+  // Cap savings at bill total — AI sometimes hallucinates savings > bill amount
+  const sav_l = Math.min(parseN(rl.totalPotentialMonthlySavings?.split("–")[0]), parseN(rl.totalCharged));
+  const sav_r = Math.min(parseN(rr.totalPotentialMonthlySavings?.split("–")[0]), parseN(rr.totalCharged));
   const sc = {SUSPICIOUS:"#FF3B30",NEEDS_REVIEW:"#FF9500",LIKELY_CORRECT:"#34C759"};
   const deltaLabel = (vA, vB, prefix="$", invert=false) => {
     const diff = vB - vA;
@@ -327,13 +328,13 @@ function buildCompareReport(left, right, completedActions) {
     const pct = vA !== 0 ? ((diff/vA)*100).toFixed(1) : 0;
     const better = invert ? diff < 0 : diff > 0;
     const color = better ? "#059669" : "#dc2626";
-    const sign = diff > 0 ? "+" : "";
-    return {label:`${sign}${prefix}${Math.abs(diff).toFixed(prefix==="$"?2:0)} (${sign}${pct}%)`, color};
+    const sign = diff > 0 ? "+" : diff < 0 ? "-" : "";
+    return {label:`${sign}${prefix}${Math.abs(diff).toFixed(prefix==="$"?2:0)} (${pct}%)`, color};
   };
   const metrics = [
     {label:"Total Charged", vl:`$${charged_l.toFixed(2)}`, vr:`$${charged_r.toFixed(2)}`, d:deltaLabel(charged_l,charged_r,"$",true)},
     {label:"Usage", vl:rl.totalUsage||`${kwh_l} kWh`, vr:rr.totalUsage||`${kwh_r} kWh`, d:deltaLabel(kwh_l,kwh_r,"",true)},
-    {label:"Rate/Unit", vl:rl.ratePerUnit||`$${rate_l.toFixed(3)}`, vr:rr.ratePerUnit||`$${rate_r.toFixed(3)}`, d:deltaLabel(rate_l,rate_r,"$",true)},
+    {label:"Rate/Unit", vl:(rl.ratePerUnit||`$${rate_l.toFixed(3)}`).replace(/\s*\(.*\)/,"").trim(), vr:(rr.ratePerUnit||`$${rate_r.toFixed(3)}`).replace(/\s*\(.*\)/,"").trim(), d:deltaLabel(rate_l,rate_r,"$",true)},
     {label:"Savings Potential", vl:`$${sav_l}/mo`, vr:`$${sav_r}/mo`, d:deltaLabel(sav_l,sav_r,"$",true)},
   ];
   const cats = ["negotiation","ratePlans","providers","equipment","behavioral","incentives"];
@@ -465,17 +466,17 @@ const TrendKPIs = ({bills, completedActions, T}) => {
   const s=[...bills].sort((a,b)=>new Date(a.analyzedAt)-new Date(b.analyzedAt));
   const avg=bills.reduce((x,b)=>x+parseNum(b.result.totalCharged),0)/bills.length;
   const cd=bills.length>1?parseNum(s[s.length-1].result.totalCharged)-parseNum(s[0].result.totalCharged):0;
-  const kd=bills.length>1?parseNum(s[s.length-1].result.totalKwh)-parseNum(s[0].result.totalKwh):0;
+  const kd=bills.length>1?parseNum(s[s.length-1].result.totalUsage||s[s.length-1].result.totalKwh)-parseNum(s[0].result.totalUsage||s[0].result.totalKwh):0;
   const susp=bills.filter(b=>b.result.billStatus==="SUSPICIOUS").length;
-  const savLow=bills.reduce((x,b)=>x+parseNum(b.result.totalPotentialMonthlySavings?.split("–")[0]),0);
+  const savLow=bills.reduce((x,b)=>x+Math.min(parseNum(b.result.totalPotentialMonthlySavings?.split("–")[0]),parseNum(b.result.totalCharged)),0);
   const completed=completedActions.size;
   const totalRecs=bills.reduce((x,b)=>x+allRecs(b).length,0);
   return (
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:"10px",marginBottom:"22px"}}>
       {[
         {label:"Avg Monthly Bill",v:`$${avg.toFixed(2)}`,c:T.text,note:`${bills.length} bill${bills.length>1?"s":""} tracked`},
-        {label:"Cost Trend",v:bills.length>1?`${cd>=0?"+":""}$${cd.toFixed(2)}`:"—",c:cd>10?"#FF3B30":cd<-10?"#34C759":"#FF9500",note:"first → latest"},
-        {label:"Usage Trend",v:bills.length>1?`${kd>=0?"+":""}${kd.toFixed(0)} kWh`:"—",c:kd>50?"#FF9500":kd<-50?"#34C759":T.textSub,note:"first → latest"},
+        {label:"Cost Trend",v:bills.length>1?(cd>=0?`+$${cd.toFixed(2)}`:`-$${Math.abs(cd).toFixed(2)}`):"—",c:cd>10?"#FF3B30":cd<-10?"#34C759":"#FF9500",note:"first → latest"},
+        {label:"Usage Trend",v:bills.length>1?`${kd>=0?"+":""}${kd.toFixed(0)} units`:"—",c:kd>50?"#FF9500":kd<-50?"#34C759":T.textSub,note:"first → latest"},
         {label:"Flagged Bills",v:`${susp}/${bills.length}`,c:susp>0?"#FF3B30":"#34C759",note:susp>0?"need attention":"all clear"},
         {label:"Actions Completed",v:`${completed}/${totalRecs}`,c:completed>0?"#34C759":T.textSub,note:completed>0?`$${[...completedActions].reduce((s,aid)=>{const b=bills.find(b=>aid.startsWith(b.id));if(!b)return s;const rec=allRecs(b).find(r=>actionId(r.billId,r.cat,r.title)===aid);return s+(rec?parseMonthlySavings(rec.estimatedSavings):0);},0).toFixed(0)}/mo saved`:"no actions yet"},
       ].map(x=>(
@@ -494,9 +495,20 @@ const SavingsView = ({bills, completedActions, onToggle, T, isMobile=false}) => 
   const allActions = bills.flatMap(allRecs);
   const completed = allActions.filter(r=>completedActions.has(actionId(r.billId,r.cat,r.title)));
   const pending = allActions.filter(r=>!completedActions.has(actionId(r.billId,r.cat,r.title)));
-  const totalMonthlySaved = completed.reduce((s,r)=>s+parseMonthlySavings(r.estimatedSavings),0);
+  // Cap completed savings per bill total too
+  const totalMonthlySaved = bills.reduce((sum,bill)=>{
+    const billTotal = parseNum(bill.result.totalCharged);
+    const billDone = allRecs(bill).filter(r=>completedActions.has(actionId(r.billId,r.cat,r.title)));
+    const billSaved = billDone.reduce((s,r)=>s+parseMonthlySavings(r.estimatedSavings),0);
+    return sum + Math.min(billSaved, billTotal);
+  },0);
   const annualSaved = totalMonthlySaved * 12;
-  const totalPotential = allActions.reduce((s,r)=>s+parseMonthlySavings(r.estimatedSavings),0);
+  // Cap per-bill savings at that bill's total charged amount
+  const totalPotential = bills.reduce((sum,bill)=>{
+    const billTotal = parseNum(bill.result.totalCharged);
+    const billSavings = allRecs(bill).reduce((s,r)=>s+parseMonthlySavings(r.estimatedSavings),0);
+    return sum + Math.min(billSavings, billTotal);
+  },0);
   const pct = totalPotential>0?Math.min(100,(totalMonthlySaved/totalPotential)*100):0;
 
   // Progress by category
@@ -655,7 +667,7 @@ const SavingsView = ({bills, completedActions, onToggle, T, isMobile=false}) => 
 const QUICK_QS = ["How do I dispute the overcharge?","What exactly is the nuclear decommissioning fee?","How much would TOU-C actually save me?","Walk me through applying for CARE","Break-even on solar at my usage","What's causing my high usage?"];
 
 const BillChat = ({billResult, T}) => {
-  const [messages, setMessages] = useState([{role:"assistant",content:`Hi! I've analyzed your ${billResult.provider} bill for ${billResult.billingPeriod} — ${billResult.totalCharged} for ${billResult.totalKwh}. Ask me anything about the charges, how to act on a recommendation, or what's driving your costs.`}]);
+  const [messages, setMessages] = useState([{role:"assistant",content:`Hi! I've analyzed your ${billResult.provider} bill for ${billResult.billingPeriod} — ${billResult.totalCharged} for ${billResult.totalUsage||billResult.totalKwh}. Ask me anything about the charges, how to act on a recommendation, or what's driving your costs.`}]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef();
@@ -718,8 +730,6 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) 
   const [a, b] = [...compareIds].map(id => bills.find(x=>x.id===id)).filter(Boolean);
   if (!a || !b) return null;
 
-  const ra = a.result, rb = b.result;
-
   // Sort so earlier bill is always left
   const [left, right] = new Date(a.analyzedAt) <= new Date(b.analyzedAt) ? [a,b] : [b,a];
   const rl = left.result, rr = right.result;
@@ -729,20 +739,21 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) 
     const pct = vA !== 0 ? ((diff / vA) * 100).toFixed(1) : 0;
     const better = invert ? diff < 0 : diff > 0;
     const color = diff === 0 ? "#6B7A9A" : better ? "#34C759" : "#FF3B30";
-    const sign = diff > 0 ? "+" : "";
-    return { diff, pct, color, label: diff === 0 ? "—" : `${sign}${prefix}${Math.abs(diff).toFixed(prefix==="$"?2:0)} (${sign}${pct}%)` };
+    const sign = diff > 0 ? "+" : diff < 0 ? "-" : "";
+    return { diff, pct, color, label: diff === 0 ? "—" : `${sign}${prefix}${Math.abs(diff).toFixed(prefix==="$"?2:0)} (${pct}%)` };
   };
 
   const charged_l = parseNum(rl.totalCharged), charged_r = parseNum(rr.totalCharged);
   const kwh_l = parseNum(rl.totalUsage||rl.totalKwh), kwh_r = parseNum(rr.totalUsage||rr.totalKwh);
   const rate_l = parseNum(rl.ratePerUnit||rl.ratePerKwh), rate_r = parseNum(rr.ratePerUnit||rr.ratePerKwh);
-  const sav_l = parseNum(rl.totalPotentialMonthlySavings?.split("–")[0]);
-  const sav_r = parseNum(rr.totalPotentialMonthlySavings?.split("–")[0]);
+  // Cap savings potential at bill total — AI sometimes hallucinates savings > bill amount
+  const sav_l = Math.min(parseNum(rl.totalPotentialMonthlySavings?.split("–")[0]), parseNum(rl.totalCharged));
+  const sav_r = Math.min(parseNum(rr.totalPotentialMonthlySavings?.split("–")[0]), parseNum(rr.totalCharged));
 
   const metrics = [
     { label:"Total Charged", vl:`$${charged_l.toFixed(2)}`, vr:`$${charged_r.toFixed(2)}`, d:delta(charged_l,charged_r,"$",true), cl:SC[rl.billStatus], cr:SC[rr.billStatus] },
     { label:"Usage", vl:rl.totalUsage||`${kwh_l} kWh`, vr:rr.totalUsage||`${kwh_r} kWh`, d:delta(kwh_l,kwh_r,"",true) },
-    { label:"Rate/Unit", vl:rl.ratePerUnit||`$${rate_l.toFixed(3)}`, vr:rr.ratePerUnit||`$${rate_r.toFixed(3)}`, d:delta(rate_l,rate_r,"$",true) },
+    { label:"Rate/Unit", vl:(rl.ratePerUnit||`$${rate_l.toFixed(3)}`).replace(/\s*\(.*\)/,"").trim(), vr:(rr.ratePerUnit||`$${rate_r.toFixed(3)}`).replace(/\s*\(.*\)/,"").trim(), d:delta(rate_l,rate_r,"$",true) },
     { label:"Savings Potential", vl:`$${sav_l}/mo`, vr:`$${sav_r}/mo`, d:delta(sav_l,sav_r,"$",true) },
   ];
 
@@ -983,6 +994,8 @@ export default function App() {
     a.download = "comparison-" + left.result.provider.replace(/[^a-z0-9]/gi,"-").toLowerCase() + "-" + Date.now() + ".html";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    setPdfToast(true);
+    setTimeout(()=>setPdfToast(false), 7000);
   };
 
   const loadDemo = ()=>{ setBills(DEMO_BILLS); setView("history"); };
@@ -1032,8 +1045,8 @@ export default function App() {
   const chartData=[...bills].sort((a,b)=>new Date(a.analyzedAt)-new Date(b.analyzedAt)).map(b=>({
     name:shortPeriod(b.result.billingPeriod),
     Cost:parseNum(b.result.totalCharged),
-    kWh:parseNum(b.result.totalKwh),
-    Rate:parseNum(b.result.ratePerKwh),
+    kWh:parseNum(b.result.totalUsage||b.result.totalKwh),
+    Rate:parseNum(b.result.ratePerUnit||b.result.ratePerKwh),
     status:b.result.billStatus,
   }));
 
@@ -1050,9 +1063,14 @@ export default function App() {
   // Savings banner for detail view
   const billRecs = selectedBill ? allRecs(selectedBill) : [];
   const billCompleted = billRecs.filter(rec=>completedActions.has(actionId(rec.billId,rec.cat,rec.title)));
-  const billSaved = billCompleted.reduce((s,rec)=>s+parseMonthlySavings(rec.estimatedSavings),0);
+  const billSaved = Math.min(billCompleted.reduce((s,rec)=>s+parseMonthlySavings(rec.estimatedSavings),0), parseNum(selectedBill?.result?.totalCharged));
   const completedCount = completedActions.size;
-  const totalTrackerSaved = bills.flatMap(allRecs).filter(rec=>completedActions.has(actionId(rec.billId,rec.cat,rec.title))).reduce((s,rec)=>s+parseMonthlySavings(rec.estimatedSavings),0);
+  const totalTrackerSaved = bills.reduce((sum,bill)=>{
+    const billTotal = parseNum(bill.result.totalCharged);
+    const billDone = allRecs(bill).filter(rec=>completedActions.has(actionId(rec.billId,rec.cat,rec.title)));
+    const billSaved = billDone.reduce((s,rec)=>s+parseMonthlySavings(rec.estimatedSavings),0);
+    return sum + Math.min(billSaved, billTotal);
+  },0);
 
   return (
     <div style={{minHeight:"100vh",background:T.bg,fontFamily:"'DM Sans',system-ui,sans-serif",color:T.text,transition:"background .3s,color .3s"}}>
@@ -1294,7 +1312,7 @@ export default function App() {
                         {bDone>0&&<div style={{fontSize:"10px",color:"#34C759",fontFamily:"monospace",flexShrink:0}}>✓ {bDone}/{bRecs.length}</div>}
                         <div style={{textAlign:"right",fontFamily:"'DM Mono',monospace",flexShrink:0}}>
                           <div style={{fontSize:"15px",fontWeight:"700",color:T.text}}>{bill.result.totalCharged}</div>
-                          <div style={{fontSize:"10px",color:T.textDim}}>{bill.result.totalKwh}</div>
+                          <div style={{fontSize:"10px",color:T.textDim}}>{bill.result.totalUsage||bill.result.totalKwh}</div>
                         </div>
                         <StatusBadge status={bill.result.billStatus} small/>
                         {!deleteMode&&<button className="db" onClick={e=>{e.stopPropagation();deleteBill(bill.id);}}>✕</button>}
@@ -1373,8 +1391,9 @@ export default function App() {
                 <div style={{fontSize:"12px",color:T.textSub,lineHeight:"1.6"}}>{r.usageRatingExplanation}</div>
                 <div style={{marginTop:"11px",padding:"10px 12px",background:T.savingsBg,borderRadius:"7px",border:`1px solid ${T.savingsBorder}`}}>
                   <div style={{fontSize:"9px",color:"#38BDF8",marginBottom:"3px",letterSpacing:"0.1em",fontFamily:"monospace"}}>POTENTIAL SAVINGS</div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:"17px",fontWeight:"700",color:"#34C759"}}>{r.totalPotentialMonthlySavings}/mo</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:"17px",fontWeight:"700",color:"#34C759"}}>{r.totalPotentialMonthlySavings}</div>
                   <div style={{fontSize:"10px",color:T.textDim,marginTop:"2px"}}>{r.totalPotentialAnnualSavings}/yr</div>
+                  {parseNum(r.totalPotentialMonthlySavings?.split("–")[0])>parseNum(r.totalCharged)&&<div style={{fontSize:"9px",color:"#FF9500",marginTop:"4px"}}>⚠ Verify with utility — includes long-term investments</div>}
                 </div>
               </div>
             </div>
