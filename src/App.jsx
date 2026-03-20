@@ -467,6 +467,8 @@ const TrendKPIs = ({bills, completedActions, T}) => {
   const avg=bills.reduce((x,b)=>x+parseNum(b.result.totalCharged),0)/bills.length;
   const cd=bills.length>1?parseNum(s[s.length-1].result.totalCharged)-parseNum(s[0].result.totalCharged):0;
   const kd=bills.length>1?parseNum(s[s.length-1].result.totalUsage||s[s.length-1].result.totalKwh)-parseNum(s[0].result.totalUsage||s[0].result.totalKwh):0;
+  const billTypes=new Set(bills.map(b=>b.result.billType).filter(Boolean));
+  const usageUnit=billTypes.size===1?({ELECTRIC:"kWh",GAS:"therms",WATER:"gallons",COMBINED:"units"}[[...billTypes][0]]||"units"):"units";
   const susp=bills.filter(b=>b.result.billStatus==="SUSPICIOUS").length;
   const savLow=bills.reduce((x,b)=>x+Math.min(parseNum(b.result.totalPotentialMonthlySavings?.split("–")[0]),parseNum(b.result.totalCharged)),0);
   const completed=completedActions.size;
@@ -476,7 +478,7 @@ const TrendKPIs = ({bills, completedActions, T}) => {
       {[
         {label:"Avg Monthly Bill",v:`$${avg.toFixed(2)}`,c:T.text,note:`${bills.length} bill${bills.length>1?"s":""} tracked`},
         {label:"Cost Trend",v:bills.length>1?(cd>=0?`+$${cd.toFixed(2)}`:`-$${Math.abs(cd).toFixed(2)}`):"—",c:cd>10?"#FF3B30":cd<-10?"#34C759":"#FF9500",note:"first → latest"},
-        {label:"Usage Trend",v:bills.length>1?`${kd>=0?"+":""}${kd.toFixed(0)} units`:"—",c:kd>50?"#FF9500":kd<-50?"#34C759":T.textSub,note:"first → latest"},
+        {label:"Usage Trend",v:bills.length>1?(kd>=0?`+${kd.toFixed(0)}`:`-${Math.abs(kd).toFixed(0)}`)+` ${usageUnit}`:"—",c:kd>50?"#FF9500":kd<-50?"#34C759":T.textSub,note:"first → latest"},
         {label:"Flagged Bills",v:`${susp}/${bills.length}`,c:susp>0?"#FF3B30":"#34C759",note:susp>0?"need attention":"all clear"},
         {label:"Actions Completed",v:`${completed}/${totalRecs}`,c:completed>0?"#34C759":T.textSub,note:completed>0?`$${[...completedActions].reduce((s,aid)=>{const b=bills.find(b=>aid.startsWith(b.id));if(!b)return s;const rec=allRecs(b).find(r=>actionId(r.billId,r.cat,r.title)===aid);return s+(rec?parseMonthlySavings(rec.estimatedSavings):0);},0).toFixed(0)}/mo saved`:"no actions yet"},
       ].map(x=>(
