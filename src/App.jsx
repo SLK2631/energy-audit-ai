@@ -840,15 +840,15 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) 
       {/* Metric rows */}
       <div style={{...CARD,marginBottom:"14px",padding:"0",overflow:"hidden"}}>
         {metrics.map((m,i)=>(
-          <div key={m.label} style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 120px 1fr",alignItems:"center",
+          <div key={m.label} style={{display:"flex",alignItems:"center",
             padding:"13px 16px",borderBottom:i<metrics.length-1?`1px solid ${T.border}`:"none",
-            background:i%2===0?"transparent":T.bgCard2,gap:isMobile?"6px":"0"}}>
-            <div style={{fontFamily:"monospace",fontSize:"14px",fontWeight:"700",color:m.cl||T.text,display:"flex",alignItems:"center",alignSelf:"center"}}>{m.vl}</div>
-            <div style={{textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",alignSelf:"center"}}>
+            background:i%2===0?"transparent":T.bgCard2,gap:"8px"}}>
+            <div style={{fontFamily:"monospace",fontSize:"14px",fontWeight:"700",color:m.cl||T.text,flex:"1",display:"flex",alignItems:"center"}}>{m.vl}</div>
+            <div style={{textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0,minWidth:"130px"}}>
               <div style={{fontSize:"9px",color:T.textDim,marginBottom:"3px",textTransform:"uppercase",letterSpacing:"0.08em"}}>{m.label}</div>
               <DeltaTag d={m.d}/>
             </div>
-            <div style={{fontFamily:"monospace",fontSize:"14px",fontWeight:"700",color:m.cr||T.text,textAlign:"right",display:"flex",alignItems:"center",justifyContent:"flex-end",alignSelf:"center"}}>{m.vr}</div>
+            <div style={{fontFamily:"monospace",fontSize:"14px",fontWeight:"700",color:m.cr||T.text,textAlign:"right",flex:"1",display:"flex",alignItems:"center",justifyContent:"flex-end"}}>{m.vr}</div>
           </div>
         ))}
       </div>
@@ -1223,9 +1223,9 @@ export default function App() {
                 {bills.length>=2&&(
                   <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"14px",marginBottom:"18px"}}>
                     {[
-                      {title:"Monthly Cost ($)",height:165,el:<LineChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Cost" stroke="#38BDF8" strokeWidth={2} dot={{fill:"#38BDF8",r:4,strokeWidth:0}} activeDot={{r:6}} name="Cost"/></LineChart>},
+                      {title:"Monthly Cost ($)",height:165,el:<LineChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`} domain={[dataMin=>Math.floor(dataMin*0.9), dataMax=>Math.ceil(dataMax*1.05)]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Cost" stroke="#38BDF8" strokeWidth={2} dot={{fill:"#38BDF8",r:4,strokeWidth:0}} activeDot={{r:6}} name="Cost"/></LineChart>},
                       {title:"Monthly Usage (kWh)",height:165,el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T}/>}/><ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4"/><Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name="kWh"/></BarChart>},
-                      {title:"Rate per kWh ($)",height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v.toFixed(2)}`}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
+                      {title:"Rate per kWh ($)",height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v.toFixed(3)}`} domain={[dataMin=>Math.floor(dataMin*0.9*1000)/1000, dataMax=>Math.ceil(dataMax*1.05*1000)/1000]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
                     ].map(({title,height,el})=>(
                       <div key={title} style={{...CARD}}>
                         <div style={{fontSize:"9px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"12px",fontFamily:"monospace"}}>{title}</div>
