@@ -335,7 +335,7 @@ function buildCompareReport(left, right, completedActions) {
     {label:"Total Charged", vl:`$${charged_l.toFixed(2)}`, vr:`$${charged_r.toFixed(2)}`, d:deltaLabel(charged_l,charged_r,"$",true)},
     {label:"Usage", vl:rl.totalUsage||`${kwh_l} kWh`, vr:rr.totalUsage||`${kwh_r} kWh`, d:deltaLabel(kwh_l,kwh_r,"",true)},
     {label:"Rate/Unit", vl:(rl.ratePerUnit||`$${rate_l.toFixed(3)}`).replace(/\s*\(.*\)/,"").trim(), vr:(rr.ratePerUnit||`$${rate_r.toFixed(3)}`).replace(/\s*\(.*\)/,"").trim(), d:deltaLabel(rate_l,rate_r,"$",true)},
-    {label:"Savings Potential", vl:`$${sav_l}/mo`, vr:`$${sav_r}/mo`, d:deltaLabel(sav_l,sav_r,"$",true)},
+    {label:"Savings Potential", vl:`$${sav_l}/mo`, vr:`$${sav_r}/mo`, d:deltaLabel(sav_l,sav_r,"$",false)},
   ];
   const cats = ["negotiation","ratePlans","providers","equipment","behavioral","incentives"];
   const catLabels = {negotiation:"Negotiation",ratePlans:"Rate Plans",providers:"Providers",equipment:"Equipment",behavioral:"Habits",incentives:"Rebates"};
@@ -756,7 +756,7 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) 
     { label:"Total Charged", vl:`$${charged_l.toFixed(2)}`, vr:`$${charged_r.toFixed(2)}`, d:delta(charged_l,charged_r,"$",true), cl:SC[rl.billStatus], cr:SC[rr.billStatus] },
     { label:"Usage", vl:rl.totalUsage||`${kwh_l} kWh`, vr:rr.totalUsage||`${kwh_r} kWh`, d:delta(kwh_l,kwh_r,"",true) },
     { label:"Rate/Unit", vl:(rl.ratePerUnit||`$${rate_l.toFixed(3)}`).replace(/\s*\(.*\)/,"").trim(), vr:(rr.ratePerUnit||`$${rate_r.toFixed(3)}`).replace(/\s*\(.*\)/,"").trim(), d:delta(rate_l,rate_r,"$",true) },
-    { label:"Savings Potential", vl:`$${sav_l}/mo`, vr:`$${sav_r}/mo`, d:delta(sav_l,sav_r,"$",true) },
+    { label:"Savings Potential", vl:`$${sav_l}/mo`, vr:`$${sav_r}/mo`, d:delta(sav_l,sav_r,"$",false) },
   ];
 
   // Bar chart data
@@ -840,15 +840,15 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) 
       {/* Metric rows */}
       <div style={{...CARD,marginBottom:"14px",padding:"0",overflow:"hidden"}}>
         {metrics.map((m,i)=>(
-          <div key={m.label} style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 120px 1fr",alignItems:isMobile?"stretch":"center",
+          <div key={m.label} style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 120px 1fr",alignItems:"center",
             padding:"13px 16px",borderBottom:i<metrics.length-1?`1px solid ${T.border}`:"none",
             background:i%2===0?"transparent":T.bgCard2,gap:isMobile?"6px":"0"}}>
-            <div style={{fontFamily:"monospace",fontSize:"14px",fontWeight:"700",color:m.cl||T.text}}>{m.vl}</div>
-            <div style={{textAlign:"center"}}>
+            <div style={{fontFamily:"monospace",fontSize:"14px",fontWeight:"700",color:m.cl||T.text,display:"flex",alignItems:"center",alignSelf:"center"}}>{m.vl}</div>
+            <div style={{textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",alignSelf:"center"}}>
               <div style={{fontSize:"9px",color:T.textDim,marginBottom:"3px",textTransform:"uppercase",letterSpacing:"0.08em"}}>{m.label}</div>
               <DeltaTag d={m.d}/>
             </div>
-            <div style={{fontFamily:"monospace",fontSize:"14px",fontWeight:"700",color:m.cr||T.text,textAlign:"right"}}>{m.vr}</div>
+            <div style={{fontFamily:"monospace",fontSize:"14px",fontWeight:"700",color:m.cr||T.text,textAlign:"right",display:"flex",alignItems:"center",justifyContent:"flex-end",alignSelf:"center"}}>{m.vr}</div>
           </div>
         ))}
       </div>
