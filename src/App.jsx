@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// ─── MOBILE HOOK ──────────────────────────────────────────────────────────────── v3
+// ─── MOBILE HOOK ───────────────────────────────────────────────────────────────
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
@@ -13,14 +13,7 @@ const useIsMobile = () => {
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area } from "recharts";
 
 // ─── SYSTEM PROMPT ─────────────────────────────────────────────────────────────
-const buildSystemPrompt = (ctx={}) => {
-  const {accountType="RESIDENTIAL", householdSize="", facilitySize=""} = ctx;
-  const isResidential = accountType === "RESIDENTIAL";
-  const isIndustrial = accountType === "INDUSTRIAL";
-  const isCommercial = accountType === "COMMERCIAL" || accountType === "SMALL_BUSINESS";
-  const sizeNote = isResidential && householdSize ? `\nCUSTOMER CONTEXT: Residential household with ${householdSize} people. Calibrate ALL usage benchmarks to this household size:\n- Electric: ${householdSize === "1" ? "~500-700" : householdSize === "2" ? "~700-900" : householdSize === "3" ? "~900-1100" : householdSize === "4" ? "~1000-1300" : "~1200-1600"} kWh/month typical\n- Water: ~${householdSize === "1" ? "2,500-3,500" : householdSize === "2" ? "5,000-7,000" : householdSize === "3" ? "7,000-9,000" : householdSize === "4" ? "9,000-12,000" : "11,000-15,000"} gallons/month typical\n- Gas: ~${householdSize === "1" ? "30-40" : householdSize === "2" ? "40-55" : householdSize === "3" ? "50-65" : householdSize === "4" ? "60-80" : "70-100"} therms/month typical (heating season)` : "";
-  const commercialNote = (isCommercial || isIndustrial) ? `\nCUSTOMER CONTEXT: ${accountType.replace("_"," ")} account${facilitySize ? ` — monthly bill range: ${facilitySize}` : ""}. Apply commercial/industrial analysis:\n- Focus on demand charges, power factor penalties, ratchet clauses, rate schedule optimization\n- Water: flag cooling tower efficiency, process water recycling, irrigation meter separation\n- Gas: evaluate interruptible service rates, transportation-only rates, CHP opportunities\n- Do NOT apply residential benchmarks — use commercial EUI and facility-type benchmarks\n- Recommendations should target operational efficiency, not behavioral residential tips` : "";
-  return `You are a world-class utility bill analyst, consumer advocate, and efficiency consultant. You analyze electricity, natural gas, and water/sewer bills for residential, commercial, and industrial customers. First detect the bill type, then apply the appropriate analysis.
+const SYSTEM_PROMPT = `You are a world-class utility bill analyst, consumer advocate, and efficiency consultant. You analyze electricity, natural gas, and water/sewer bills for residential, commercial, and industrial customers. First detect the bill type, then apply the appropriate analysis.
 
 STEP 1 — DETECT BILL TYPE
 Identify: ELECTRIC, GAS, WATER, or COMBINED. Use appropriate units and benchmarks.
@@ -33,7 +26,7 @@ WATER: Flag incorrect tier/block rate assignments, sewer multiplier errors (irri
 STEP 3 — USAGE ANALYSIS
 ELECTRIC: vs US average ~899 kWh/month residential; commercial/industrial benchmarks vary by facility type.
 GAS: vs US average ~50 therms/month residential; note heating/cooling degree day context and seasonal anomalies.
-WATER: vs US average ~9,000-10,000 gallons/month per HOUSEHOLD (~300 GPD per household, or ~80-100 GPD per person). The 3,000 gal/month figure is per-person only — do NOT use it as a household benchmark. A family home using 8,000-12,000 gallons/month is NORMAL. Flag as HIGH only above 15,000 gal/month, VERY_HIGH above 20,000 gal/month for a typical residential account. Flag irrigation spikes (summer months 2-3x winter baseline = normal if irrigation meter present), leak indicators (usage never drops to zero overnight on hourly data, or unexplained month-over-month spike >50%), industrial process water benchmarks.
+WATER: vs US average ~3,000 gallons/month residential (~100 GPD); flag irrigation spikes, leak indicators (usage never drops overnight), industrial process water benchmarks.
 
 STEP 4 — REGIONAL COMPARISON
 Compare total bill to regional averages for similar facility type and climate zone.
@@ -86,8 +79,6 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   "totalPotentialMonthlySavings":"$XX-$XX/month","totalPotentialAnnualSavings":"$XXX-$XXXX/year",
   "priorityAction":"single most impactful action","analysisConfidence":"HIGH|MEDIUM|LOW","confidenceNote":"reason"
 }`;
-};
-const SYSTEM_PROMPT = buildSystemPrompt(); // default — overridden per-analysis
 
 // ─── CHAT PROMPT ───────────────────────────────────────────────────────────────
 const buildChatPrompt = (r) => `You are an expert utility bill analyst specializing in electricity, gas, and water bills. A customer has questions about their specific analyzed bill. Full analysis:
@@ -262,53 +253,6 @@ function buildReport(d, completedActions) {
   const recs=cats.flatMap(cat=>(d.recommendations[cat]||[]).map(i=>({...i,cat:CAT_LABELS[cat]})));
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Energy Audit</title><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;600&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#f9fafb;color:#1a1a2e;-webkit-print-color-adjust:exact}
   .page{max-width:960px;margin:0 auto;background:#fff}.hdr{background:#0d0d1a;color:#fff;padding:44px 52px 36px}.lbl{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:#38BDF8;margin-bottom:10px;text-transform:uppercase}.ttl{font-family:'DM Serif Display',serif;font-size:36px;margin-bottom:6px}.sub{font-size:13px;color:#8892a4;margin-bottom:28px}.meta{display:flex;gap:44px;flex-wrap:wrap}.ml label{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:3px}.ml span{font-family:'DM Mono',monospace;font-size:13px;color:#fff}.bdg{display:inline-block;padding:3px 12px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:#fff;margin-top:3px}.body{padding:44px 52px}.sec{margin-bottom:36px}.st{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #f3f4f6;padding-bottom:8px;margin-bottom:18px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:18px}.stat{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:18px}.sl{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}.sv{font-family:'DM Mono',monospace;font-size:20px;font-weight:600}.pri{background:linear-gradient(135deg,#0d0d1a,#1a1a3e);color:#fff;border-radius:10px;padding:20px 24px;margin-bottom:28px;border-left:4px solid #38BDF8}.pl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:#38BDF8;margin-bottom:6px}.pt{font-size:14px;line-height:1.6;color:#e5e7eb}table{width:100%;border-collapse:collapse}th{background:#f9fafb;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;text-align:left;padding:9px 11px;border-bottom:2px solid #e5e7eb}td{padding:9px 11px;border-bottom:1px solid #e5e7eb;font-size:12px}.done td{background:#f0fdf4}.sv2{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #6ee7b7;border-radius:10px;padding:20px 24px;margin-top:28px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}.sv2l{font-size:12px;color:#065f46;margin-bottom:3px}.sv2v{font-family:'DM Mono',monospace;font-size:26px;font-weight:700;color:#047857}.ftr{background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 52px;display:flex;justify-content:space-between;align-items:center}.fb{font-family:'DM Mono',monospace;font-size:12px;color:#6b7280}.fd{font-size:10px;color:#9ca3af;max-width:480px;line-height:1.5}.meth{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:28px 32px;margin-bottom:36px}.meth-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px}.src-cat{margin-bottom:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:#38BDF8;letter-spacing:.1em;text-transform:uppercase}.src-item{margin-bottom:10px}.src-name{font-size:12px;font-weight:600;color:#1a1a2e;margin-bottom:2px}.src-desc{font-size:11px;color:#6b7280;line-height:1.5}.src-url{font-size:10px;color:#0ea5e9;font-family:'DM Mono',monospace}.disc{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:14px 18px;margin-top:28px;font-size:11px;color:#92400e;line-height:1.6}
-  @media (prefers-color-scheme:dark){
-    body{background:#07080f!important;color:#E8EAF0!important}
-    .page{background:#0d0d1a!important}
-    .body{background:#0d0d1a}
-    .hdr{background:#040810!important;border-bottom:1px solid rgba(56,189,248,0.15)}
-    .stat{background:rgba(255,255,255,0.04)!important;border-color:rgba(255,255,255,0.08)!important}
-    .sl{color:#4A5568!important}
-    .sv{color:#E8EAF0!important}
-    .st{color:#4A5568!important;border-bottom-color:rgba(255,255,255,0.06)!important}
-    .sec{color:#E8EAF0}
-    table th{background:rgba(255,255,255,0.04)!important;color:#4A5568!important;border-bottom-color:rgba(255,255,255,0.08)!important}
-    table td{border-bottom-color:rgba(255,255,255,0.05)!important;color:#E8EAF0!important}
-    table tr:nth-child(even) td{background:rgba(255,255,255,0.025)!important}
-    .done td{background:rgba(52,199,89,0.08)!important}
-    .sv2{background:linear-gradient(135deg,rgba(52,199,89,0.1),rgba(56,189,248,0.06))!important;border-color:rgba(52,199,89,0.2)!important}
-    .sv2l{color:#34C759!important}
-    .sv2v{color:#34C759!important}
-    .ftr{background:rgba(255,255,255,0.03)!important;border-top-color:rgba(255,255,255,0.06)!important}
-    .fb{color:#4A5568!important}
-    .fd{color:#3D4559!important}
-    .meth{background:rgba(255,255,255,0.03)!important;border-color:rgba(255,255,255,0.06)!important}
-    .src-name{color:#E8EAF0!important}
-    .src-desc{color:#4A5568!important}
-    .disc{background:rgba(255,149,0,0.08)!important;border-color:rgba(255,149,0,0.2)!important;color:#FF9500!important}
-    .ml label{color:#4A5568!important}
-    .sub{color:#4A5568!important}
-    .rec-item{background:rgba(255,255,255,0.04)!important;border-color:rgba(255,255,255,0.08)!important;color:#E8EAF0!important}
-    .rec-title{color:#E8EAF0!important}
-    .shared-item{background:rgba(255,149,0,0.08)!important;border-color:rgba(255,149,0,0.2)!important;color:#FF9500!important}
-    .bill-card-a{background:rgba(56,189,248,0.08)!important;border-color:rgba(56,189,248,0.2)!important}
-    .bill-card-b{background:rgba(52,199,89,0.08)!important;border-color:rgba(52,199,89,0.2)!important}
-    .bill-provider{color:#E8EAF0!important}
-    .bill-period{color:#4A5568!important}
-    .metric-label{color:#4A5568!important}
-    .metrics-table tr{border-bottom-color:rgba(255,255,255,0.05)!important}
-    .metrics-table tr:nth-child(even){background:rgba(255,255,255,0.025)!important}
-    .metrics-table thead tr{background:rgba(255,255,255,0.04)!important}
-    .vs-divider{color:#4A5568!important}
-    .rec-col-title{opacity:0.9}
-  }
-  @media print{
-    body{background:#fff!important;color:#1a1a2e!important}
-    .page{background:#fff!important}
-    .stat{background:#f9fafb!important;border-color:#e5e7eb!important}
-    .sv{color:#1a1a2e!important}
-    .ftr{background:#f9fafb!important}
-  }
   </style></head><body><div class="page">
   <div class="hdr">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
@@ -336,7 +280,7 @@ function buildReport(d, completedActions) {
     <div>
       <div class="src-cat">Usage Benchmarks</div>
       <div class="src-item"><div class="src-name">U.S. Energy Information Administration (EIA)</div><div class="src-desc">Residential, commercial &amp; industrial electricity, gas, and water usage averages by state and climate zone.</div><div class="src-url">eia.gov/consumption</div></div>
-      <div class="src-item"><div class="src-name">EPA WaterSense Program</div><div class="src-desc">Residential water use benchmarks (~9,000-10,000 gal/month per household; ~80-100 GPD per person), efficiency standards, and fixture certification data.</div><div class="src-url">epa.gov/watersense</div></div>
+      <div class="src-item"><div class="src-name">EPA WaterSense Program</div><div class="src-desc">Residential water use benchmarks (~3,000 gal/month), efficiency standards, and fixture certification data.</div><div class="src-url">epa.gov/watersense</div></div>
       <div class="src-item"><div class="src-name">ASHRAE Building Energy Standards</div><div class="src-desc">Commercial and industrial energy use intensity (EUI) benchmarks by facility type and climate zone.</div><div class="src-url">ashrae.org/standards</div></div>
     </div>
     <div>
@@ -447,27 +391,6 @@ function buildCompareReport(left, right, completedActions) {
     .fb{font-family:'DM Mono',monospace;font-size:11px;color:#6b7280}
     .fd{font-size:10px;color:#9ca3af;max-width:450px;line-height:1.5}
     .bdg{display:inline-block;padding:2px 8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:#fff;margin-top:4px}
-    @media (prefers-color-scheme:dark){
-      body{background:#07080f!important;color:#E8EAF0!important}
-      .page{background:#0d0d1a!important}
-      .hdr{background:#040810!important}
-      .stat,.rec-item{background:rgba(255,255,255,0.04)!important;border-color:rgba(255,255,255,0.08)!important}
-      .sl,.bill-period,.vs-divider,.fd,.fb,.metric-label{color:#4A5568!important}
-      .sv,.bill-provider,.rec-title{color:#E8EAF0!important}
-      .st{color:#4A5568!important;border-bottom-color:rgba(255,255,255,0.06)!important}
-      table th{background:rgba(255,255,255,0.04)!important;color:#4A5568!important;border-bottom-color:rgba(255,255,255,0.08)!important}
-      table td{border-bottom-color:rgba(255,255,255,0.05)!important;color:#E8EAF0!important}
-      .metrics-table tr:nth-child(even){background:rgba(255,255,255,0.025)!important}
-      .bill-card-a{background:rgba(56,189,248,0.08)!important;border-color:rgba(56,189,248,0.2)!important}
-      .bill-card-b{background:rgba(52,199,89,0.08)!important;border-color:rgba(52,199,89,0.2)!important}
-      .shared-item{background:rgba(255,149,0,0.08)!important;border-color:rgba(255,149,0,0.2)!important;color:#FF9500!important}
-      .ftr{background:rgba(255,255,255,0.03)!important;border-top-color:rgba(255,255,255,0.06)!important}
-    }
-    @media print{
-      body{background:#fff!important;color:#1a1a2e!important}
-      .page{background:#fff!important}
-      .ftr{background:#f9fafb!important}
-    }
   </style></head><body><div class="page">
   <div class="hdr">
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
@@ -992,13 +915,6 @@ export default function App() {
   const [file, setFile] = useState(null);
   const [imageDataUrl, setImageDataUrl] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [accountType, setAccountType] = useState("RESIDENTIAL");
-  const [householdSize, setHouseholdSize] = useState("2");
-  const [facilitySize, setFacilitySize] = useState("");
-  const [bulkMode, setBulkMode] = useState(false);
-  const [bulkFiles, setBulkFiles] = useState([]);
-  const [bulkProgress, setBulkProgress] = useState([]); // {name, status, result}
-  const [bulkRunning, setBulkRunning] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("negotiation");
   const [isDragging, setIsDragging] = useState(false);
@@ -1011,7 +927,6 @@ export default function App() {
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [pdfToast, setPdfToast] = useState(false);
   const fileInputRef = useRef();
-  const bulkInputRef = useRef();
   const CARD = {background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"10px",padding:"18px"};
 
   // Load from storage
@@ -1028,62 +943,6 @@ export default function App() {
   useEffect(()=>{ if(!storageReady)return; (async()=>{try{localStorage.setItem("ea-dark",JSON.stringify(darkMode));}catch(_){}})(); },[darkMode,storageReady]);
   useEffect(()=>{ if(!storageReady)return; (async()=>{try{localStorage.setItem("ea-completed",JSON.stringify([...completedActions]));}catch(_){}})(); },[completedActions,storageReady]);
 
-  // Analyze a single File object — returns parsed result or throws
-  const analyzeSingleFile = async (file) => {
-    const dataUrl = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = e => res(e.target.result);
-      r.onerror = () => rej(new Error("Read failed"));
-      r.readAsDataURL(file);
-    });
-    const isImg = dataUrl.startsWith("data:image");
-    const b64 = dataUrl.split(",")[1];
-    const mt = dataUrl.match(/data:(.*?);/)?.[1] || "image/jpeg";
-    const blocks = isImg
-      ? [{type:"image",source:{type:"base64",media_type:mt,data:b64}},{type:"text",text:"Analyze this energy bill and return the JSON report."}]
-      : [{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analyze this energy bill PDF and return the JSON report."}];
-    const res = await fetch("/api/chat", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:8000,system:buildSystemPrompt({accountType,householdSize,facilitySize}),messages:[{role:"user",content:blocks}]})
-    });
-    const data = await res.json();
-    if(data.error) throw new Error(data.error.message);
-    const text = data.content?.find(b=>b.type==="text")?.text||"";
-    if(!text) throw new Error("Empty response");
-    return JSON.parse(text.replace(/```json|```/g,"").trim());
-  };
-
-  // Bulk analyze up to 12 files sequentially
-  const bulkAnalyze = async () => {
-    if(!bulkFiles.length || bulkRunning) return;
-    setBulkRunning(true);
-    const progress = bulkFiles.map(f=>({name:f.name,status:"queued",result:null,error:null}));
-    setBulkProgress([...progress]);
-    const newBills = [];
-    for(let i=0; i<bulkFiles.length; i++) {
-      progress[i] = {...progress[i], status:"analyzing"};
-      setBulkProgress([...progress]);
-      try {
-        const parsed = await analyzeSingleFile(bulkFiles[i]);
-        const nb = {id:`bill-${Date.now()}-${i}`, analyzedAt:new Date().toISOString(), result:parsed, context:{accountType,householdSize,facilitySize}};
-        newBills.push(nb);
-        progress[i] = {...progress[i], status:"done", result:parsed};
-      } catch(e) {
-        progress[i] = {...progress[i], status:"error", error:e.message||"Failed"};
-      }
-      setBulkProgress([...progress]);
-      // Small delay between calls to avoid rate limits
-      if(i < bulkFiles.length-1) await new Promise(r=>setTimeout(r,800));
-    }
-    setBills(p=>[...p,...newBills]);
-    setBulkRunning(false);
-    // Navigate to history when done
-    if(newBills.length>0) {
-      setTimeout(()=>{ setBulkMode(false); setBulkFiles([]); setBulkProgress([]); setView("history"); }, 1800);
-    }
-  };
-
   const handleFile = useCallback((f)=>{
     if(!f) return; setFile(f); setError(null);
     const r=new FileReader(); r.onload=e=>setImageDataUrl(e.target.result); r.readAsDataURL(f);
@@ -1092,8 +951,23 @@ export default function App() {
   const analyze = async()=>{
     if(!imageDataUrl) return; setAnalyzing(true); setError(null);
     try {
-      const parsed = await analyzeSingleFile(file);
-      const nb={id:`bill-${Date.now()}`,analyzedAt:new Date().toISOString(),result:parsed,context:{accountType,householdSize,facilitySize}};
+      const isImg=imageDataUrl.startsWith("data:image");
+      const b64=imageDataUrl.split(",")[1];
+      const mt=imageDataUrl.match(/data:(.*?);/)?.[1]||"image/jpeg";
+      const blocks=isImg
+        ?[{type:"image",source:{type:"base64",media_type:mt,data:b64}},{type:"text",text:"Analyze this energy bill and return the JSON report."}]
+        :[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analyze this energy bill PDF and return the JSON report."}];
+      const res=await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:8000,system:SYSTEM_PROMPT,messages:[{role:"user",content:blocks}]})
+      });
+      const data=await res.json();
+      if(data.error) throw new Error(data.error.message);
+      const text=data.content?.find(b=>b.type==="text")?.text||"";
+      if(!text) throw new Error("Empty response — try a clearer photo.");
+      const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+      const nb={id:`bill-${Date.now()}`,analyzedAt:new Date().toISOString(),result:parsed};
       setBills(p=>[...p,nb]); setSelectedBill(nb); setActiveTab("negotiation");
       setShowChat(false); setView("detail"); setFile(null); setImageDataUrl(null);
     } catch(e) { setError("Analysis failed — "+(e.message||"Please try again.")); }
@@ -1280,168 +1154,41 @@ export default function App() {
 
         {/* ══ ANALYZE ══ */}
         {view==="analyze"&&(
-          <div style={{maxWidth:"560px",margin:"0 auto",width:"100%"}}>
+          <div style={{maxWidth:"540px",margin:"0 auto",width:"100%"}}>
 
-            <div style={{textAlign:"center",marginBottom:"28px"}}>
+
+            <div style={{textAlign:"center",marginBottom:"36px"}}>
               <div style={{fontFamily:"'DM Serif Display',serif",fontSize:isMobile?"26px":"36px",lineHeight:"1.15",marginBottom:"12px"}}>
                 Is your energy bill<br/><span style={{color:"#38BDF8",fontStyle:"italic"}}>actually correct?</span>
               </div>
-              <div style={{fontSize:"14px",color:T.textSub,lineHeight:"1.7",maxWidth:"420px",margin:"0 auto"}}>Upload a bill — or an entire year at once. AI verifies every charge, benchmarks costs regionally, and surfaces every dollar you can save.</div>
+              <div style={{fontSize:"14px",color:T.textSub,lineHeight:"1.7",maxWidth:"420px",margin:"0 auto"}}>Upload a bill. AI verifies every charge, benchmarks your costs regionally, and surfaces every dollar you can save.</div>
               <div style={{display:"flex",gap:"14px",justifyContent:"center",marginTop:"14px",flexWrap:"wrap"}}>
                 {bills.length>0&&<span style={{fontSize:"11px",color:"#38BDF8",cursor:"pointer",textDecoration:"underline"}} onClick={()=>setView("history")}>📊 {bills.length} bill{bills.length>1?"s":""} in history →</span>}
                 {completedCount>0&&<span style={{fontSize:"11px",color:"#34C759",cursor:"pointer",textDecoration:"underline"}} onClick={()=>setView("tracker")}>💰 ${totalTrackerSaved.toFixed(0)}/mo saved →</span>}
               </div>
             </div>
 
-            {/* ── Context Panel ── */}
-            <div style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"12px",padding:"16px",marginBottom:"16px"}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:"10px",color:"#38BDF8",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"12px",fontWeight:"700"}}>Account Context</div>
-              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"12px"}}>
-                <div>
-                  <div style={{fontSize:"10px",color:T.textDim,marginBottom:"6px",textTransform:"uppercase",letterSpacing:"0.08em"}}>Account Type</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
-                    {[{v:"RESIDENTIAL",l:"🏠 Residential"},{v:"SMALL_BUSINESS",l:"🏪 Small Business"},{v:"COMMERCIAL",l:"🏢 Commercial"},{v:"INDUSTRIAL",l:"🏭 Industrial"}].map(opt=>(
-                      <button key={opt.v} onClick={()=>setAccountType(opt.v)} style={{padding:"7px 6px",borderRadius:"7px",border:`1px solid ${accountType===opt.v?"#38BDF8":T.border}`,background:accountType===opt.v?"rgba(56,189,248,0.12)":T.bgCard2,color:accountType===opt.v?"#38BDF8":T.textSub,cursor:"pointer",fontSize:"10px",fontWeight:accountType===opt.v?"700":"400",transition:"all .15s",textAlign:"center"}}>{opt.l}</button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  {accountType==="RESIDENTIAL"?(
-                    <>
-                      <div style={{fontSize:"10px",color:T.textDim,marginBottom:"6px",textTransform:"uppercase",letterSpacing:"0.08em"}}>Household Size</div>
-                      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"5px"}}>
-                        {["1","2","3","4","5+"].map(n=>(
-                          <button key={n} onClick={()=>setHouseholdSize(n==="5+"?"5":n)} style={{padding:"8px 4px",borderRadius:"7px",border:`1px solid ${householdSize===(n==="5+"?"5":n)?"#38BDF8":T.border}`,background:householdSize===(n==="5+"?"5":n)?"rgba(56,189,248,0.12)":T.bgCard2,color:householdSize===(n==="5+"?"5":n)?"#38BDF8":T.textSub,cursor:"pointer",fontSize:"12px",fontWeight:"700",transition:"all .15s"}}>{n}</button>
-                        ))}
-                      </div>
-                      <div style={{fontSize:"9px",color:T.textDim,marginTop:"5px"}}>People in household — calibrates benchmarks</div>
-                    </>
-                  ):(
-                    <>
-                      <div style={{fontSize:"10px",color:T.textDim,marginBottom:"6px",textTransform:"uppercase",letterSpacing:"0.08em"}}>Monthly Bill Range</div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
-                        {[{v:"under $500",l:"Under $500"},{v:"$500–$2,000",l:"$500–$2K"},{v:"$2,000–$10,000",l:"$2K–$10K"},{v:"$10,000+",l:"$10K+"}].map(opt=>(
-                          <button key={opt.v} onClick={()=>setFacilitySize(opt.v)} style={{padding:"7px 6px",borderRadius:"7px",border:`1px solid ${facilitySize===opt.v?"#38BDF8":T.border}`,background:facilitySize===opt.v?"rgba(56,189,248,0.12)":T.bgCard2,color:facilitySize===opt.v?"#38BDF8":T.textSub,cursor:"pointer",fontSize:"10px",fontWeight:facilitySize===opt.v?"700":"400",transition:"all .15s",textAlign:"center"}}>{opt.l}</button>
-                        ))}
-                      </div>
-                      <div style={{fontSize:"9px",color:T.textDim,marginTop:"5px"}}>Calibrates commercial benchmarks</div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-            {/* Mode toggle */}
-            <div style={{display:"flex",gap:"8px",marginBottom:"16px",background:T.bgCard2,padding:"4px",borderRadius:"10px",border:`1px solid ${T.border}`}}>
-              <button onClick={()=>{setBulkMode(false);setBulkFiles([]);setBulkProgress([]);}} style={{flex:1,padding:"9px",borderRadius:"7px",border:"none",background:!bulkMode?"linear-gradient(135deg,#38BDF8,#0EA5E9)":T.bgCard,color:!bulkMode?"#040d18":T.textSub,cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace",transition:"all .2s"}}>
-                ⚡ Single Bill
-              </button>
-              <button onClick={()=>{setBulkMode(true);setFile(null);setImageDataUrl(null);}} style={{flex:1,padding:"9px",borderRadius:"7px",border:"none",background:bulkMode?"linear-gradient(135deg,#38BDF8,#0EA5E9)":T.bgCard,color:bulkMode?"#040d18":T.textSub,cursor:"pointer",fontSize:"12px",fontWeight:"700",fontFamily:"monospace",transition:"all .2s"}}>
-                📂 Bulk Upload (up to 12)
-              </button>
+            <div className="uz" onDrop={e=>{e.preventDefault();setIsDragging(false);handleFile(e.dataTransfer.files[0]);}} onDragOver={e=>{e.preventDefault();setIsDragging(true);}} onDragLeave={()=>setIsDragging(false)} onClick={()=>fileInputRef.current?.click()} style={{border:`2px dashed ${isDragging?"rgba(56,189,248,.65)":T.uploadBorder}`,borderRadius:"14px",padding:"44px 28px",textAlign:"center",background:isDragging?"rgba(56,189,248,.05)":T.uploadBg,marginBottom:"14px"}}>
+              <input ref={fileInputRef} type="file" accept="image/*,.pdf" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
+              {file?(
+                <div><div style={{fontSize:"36px",marginBottom:"8px"}}>📄</div><div style={{fontFamily:"'DM Mono',monospace",fontSize:"13px",color:"#38BDF8",marginBottom:"3px"}}>{file.name}</div><div style={{fontSize:"11px",color:T.textDim}}>{(file.size/1024).toFixed(0)} KB · click to change</div></div>
+              ):(
+                <div><div style={{fontSize:"36px",marginBottom:"12px",opacity:0.15}}>⚡</div><div style={{fontSize:"14px",fontWeight:"600",marginBottom:"5px"}}>Drop your energy bill here</div><div style={{fontSize:"12px",color:T.textDim}}>PDF, PNG, JPG — any format your utility sends</div></div>
+              )}
             </div>
 
-            {!bulkMode?(
-              <>
-                {/* Single bill upload */}
-                <div className="uz" onDrop={e=>{e.preventDefault();setIsDragging(false);handleFile(e.dataTransfer.files[0]);}} onDragOver={e=>{e.preventDefault();setIsDragging(true);}} onDragLeave={()=>setIsDragging(false)} onClick={()=>fileInputRef.current?.click()} style={{border:`2px dashed ${isDragging?"rgba(56,189,248,.65)":T.uploadBorder}`,borderRadius:"14px",padding:"44px 28px",textAlign:"center",background:isDragging?"rgba(56,189,248,.05)":T.uploadBg,marginBottom:"14px"}}>
-                  <input ref={fileInputRef} type="file" accept="image/*,.pdf" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
-                  {file?(
-                    <div><div style={{fontSize:"36px",marginBottom:"8px"}}>📄</div><div style={{fontFamily:"'DM Mono',monospace",fontSize:"13px",color:"#38BDF8",marginBottom:"3px"}}>{file.name}</div><div style={{fontSize:"11px",color:T.textDim}}>{(file.size/1024).toFixed(0)} KB · click to change</div></div>
-                  ):(
-                    <div><div style={{fontSize:"36px",marginBottom:"12px",opacity:0.15}}>⚡</div><div style={{fontSize:"14px",fontWeight:"600",marginBottom:"5px"}}>Drop your utility bill here</div><div style={{fontSize:"12px",color:T.textDim}}>Electric, gas, or water bill · PDF, PNG, JPG</div></div>
-                  )}
-                </div>
-                {imageDataUrl?.startsWith("data:image")&&(
-                  <div style={{marginBottom:"12px",borderRadius:"9px",overflow:"hidden",border:`1px solid ${T.border}`,maxHeight:"140px",display:"flex",justifyContent:"center",background:T.bgCard2}}>
-                    <img src={imageDataUrl} alt="preview" style={{maxHeight:"140px",objectFit:"contain"}}/>
-                  </div>
-                )}
-                {error&&<div style={{background:T.errorBg,border:`1px solid ${T.errorBorder}`,borderRadius:"7px",padding:"10px 13px",color:"#FF6B6B",fontSize:"12px",marginBottom:"12px"}}>{error}</div>}
-                <button onClick={analyze} disabled={!file||analyzing} style={{width:"100%",padding:"14px",borderRadius:"9px",background:file&&!analyzing?"linear-gradient(135deg,#38BDF8,#0EA5E9)":T.bgCard2,border:`1px solid ${file&&!analyzing?"transparent":T.border}`,color:file&&!analyzing?"#040d18":T.textDim,fontSize:"14px",fontWeight:"700",cursor:file&&!analyzing?"pointer":"not-allowed",fontFamily:"'DM Mono',monospace",letterSpacing:".05em",boxShadow:file&&!analyzing?"0 4px 16px rgba(56,189,248,.25)":"none"}}>
-                  {analyzing?<span className="pulse">⚡ Analyzing your bill...</span>:"⚡ Analyze My Bill"}
-                </button>
-                <div style={{textAlign:"center",marginTop:"9px",fontSize:"10px",color:T.textFaint}}>Processed by AI · Never stored externally · ~15 seconds</div>
-              </>
-            ):(
-              <>
-                {/* Bulk upload */}
-                {bulkProgress.length===0?(
-                  <>
-                    <div className="uz" onClick={()=>bulkInputRef.current?.click()}
-                      onDrop={e=>{e.preventDefault();const files=[...e.dataTransfer.files].slice(0,12);setBulkFiles(files);}}
-                      onDragOver={e=>e.preventDefault()}
-                      style={{border:`2px dashed ${T.uploadBorder}`,borderRadius:"14px",padding:"36px 28px",textAlign:"center",background:T.uploadBg,marginBottom:"14px",cursor:"pointer"}}>
-                      <input ref={bulkInputRef} type="file" accept="image/*,.pdf" multiple style={{display:"none"}} onChange={e=>{const files=[...e.target.files].slice(0,12);setBulkFiles(files);}}/>
-                      {bulkFiles.length>0?(
-                        <div>
-                          <div style={{fontSize:"28px",marginBottom:"10px"}}>📂</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:"13px",color:"#38BDF8",marginBottom:"8px"}}>{bulkFiles.length} file{bulkFiles.length>1?"s":""} selected</div>
-                          <div style={{display:"flex",flexDirection:"column",gap:"4px",maxHeight:"160px",overflowY:"auto"}}>
-                            {bulkFiles.map((f,i)=>(
-                              <div key={i} style={{fontSize:"11px",color:T.textDim,fontFamily:"monospace",background:T.bgCard2,padding:"4px 8px",borderRadius:"4px",textAlign:"left",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                                📄 {f.name}
-                              </div>
-                            ))}
-                          </div>
-                          <div style={{fontSize:"10px",color:T.textDim,marginTop:"8px"}}>Click to change selection</div>
-                        </div>
-                      ):(
-                        <div>
-                          <div style={{fontSize:"36px",marginBottom:"12px",opacity:0.15}}>📂</div>
-                          <div style={{fontSize:"14px",fontWeight:"600",marginBottom:"5px"}}>Drop up to 12 bills here</div>
-                          <div style={{fontSize:"12px",color:T.textDim,marginBottom:"4px"}}>Select multiple files at once — one per month</div>
-                          <div style={{fontSize:"11px",color:T.textDim}}>PDF, PNG, JPG · Electric, gas, or water bills</div>
-                        </div>
-                      )}
-                    </div>
-                    {bulkFiles.length>0&&(
-                      <div style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"9px",padding:"12px 14px",marginBottom:"14px",fontSize:"12px",color:T.textSub}}>
-                        <span style={{color:"#38BDF8",fontWeight:"700"}}>{bulkFiles.length}</span> bill{bulkFiles.length>1?"s":""} queued · ~{bulkFiles.length*15} seconds to analyze all
-                      </div>
-                    )}
-                    <button onClick={bulkAnalyze} disabled={!bulkFiles.length||bulkRunning} style={{width:"100%",padding:"14px",borderRadius:"9px",background:bulkFiles.length&&!bulkRunning?"linear-gradient(135deg,#38BDF8,#0EA5E9)":T.bgCard2,border:`1px solid ${bulkFiles.length&&!bulkRunning?"transparent":T.border}`,color:bulkFiles.length&&!bulkRunning?"#040d18":T.textDim,fontSize:"14px",fontWeight:"700",cursor:bulkFiles.length&&!bulkRunning?"pointer":"not-allowed",fontFamily:"'DM Mono',monospace",letterSpacing:".05em"}}>
-                      {bulkRunning?<span className="pulse">⚡ Analyzing...</span>:`⚡ Analyze All ${bulkFiles.length||""} Bills`}
-                    </button>
-                  </>
-                ):(
-                  /* Progress view */
-                  <div style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"12px",overflow:"hidden"}}>
-                    <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,background:T.bgCard2,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontFamily:"monospace",fontSize:"11px",fontWeight:"700",color:"#38BDF8",letterSpacing:"0.1em"}}>BULK ANALYSIS PROGRESS</span>
-                      <span style={{fontSize:"11px",color:T.textDim}}>{bulkProgress.filter(x=>x.status==="done").length}/{bulkProgress.length} complete</span>
-                    </div>
-                    <div style={{padding:"10px 12px",display:"flex",flexDirection:"column",gap:"6px",maxHeight:"340px",overflowY:"auto"}}>
-                      {bulkProgress.map((item,i)=>(
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 10px",borderRadius:"7px",background:item.status==="done"?"rgba(52,199,89,0.06)":item.status==="error"?"rgba(255,59,48,0.06)":item.status==="analyzing"?"rgba(56,189,248,0.06)":T.bgCard2,border:`1px solid ${item.status==="done"?"rgba(52,199,89,0.2)":item.status==="error"?"rgba(255,59,48,0.2)":item.status==="analyzing"?"rgba(56,189,248,0.2)":T.border}`}}>
-                          <span style={{fontSize:"16px",flexShrink:0}}>
-                            {item.status==="done"?"✅":item.status==="error"?"❌":item.status==="analyzing"?"⚡":"⏳"}
-                          </span>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:"11px",fontWeight:"600",color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
-                            {item.status==="done"&&item.result&&(
-                              <div style={{fontSize:"10px",color:"#34C759",marginTop:"2px"}}>{item.result.provider} · {item.result.totalCharged} · {item.result.billStatus}</div>
-                            )}
-                            {item.status==="error"&&<div style={{fontSize:"10px",color:"#FF6B6B",marginTop:"2px"}}>{item.error}</div>}
-                            {item.status==="analyzing"&&<div style={{fontSize:"10px",color:"#38BDF8",marginTop:"2px"}} className="pulse">Analyzing...</div>}
-                            {item.status==="queued"&&<div style={{fontSize:"10px",color:T.textDim,marginTop:"2px"}}>Waiting...</div>}
-                          </div>
-                          {item.status==="done"&&<span style={{fontSize:"11px",fontFamily:"monospace",color:"#34C759",flexShrink:0,fontWeight:"700"}}>{item.result?.totalPotentialMonthlySavings?.split("–")[0]}/mo</span>}
-                        </div>
-                      ))}
-                    </div>
-                    {!bulkRunning&&bulkProgress.every(x=>x.status==="done"||x.status==="error")&&(
-                      <div style={{padding:"12px 14px",borderTop:`1px solid ${T.border}`,background:"rgba(52,199,89,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:"12px",color:"#34C759",fontWeight:"700"}}>✅ {bulkProgress.filter(x=>x.status==="done").length} bills analyzed successfully</span>
-                        <button onClick={()=>{setBulkFiles([]);setBulkProgress([]);setView("history");}} style={{background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",color:"#040d18",padding:"7px 14px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontWeight:"700",fontFamily:"monospace"}}>
-                          View in History →
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div style={{textAlign:"center",marginTop:"9px",fontSize:"10px",color:T.textFaint}}>Bills analyzed sequentially · ~15 seconds each · up to 12 bills</div>
-              </>
+            {imageDataUrl?.startsWith("data:image")&&(
+              <div style={{marginBottom:"12px",borderRadius:"9px",overflow:"hidden",border:`1px solid ${T.border}`,maxHeight:"140px",display:"flex",justifyContent:"center",background:T.bgCard2}}>
+                <img src={imageDataUrl} alt="preview" style={{maxHeight:"140px",objectFit:"contain"}}/>
+              </div>
             )}
+
+            {error&&<div style={{background:T.errorBg,border:`1px solid ${T.errorBorder}`,borderRadius:"7px",padding:"10px 13px",color:"#FF6B6B",fontSize:"12px",marginBottom:"12px"}}>{error}</div>}
+
+            <button onClick={analyze} disabled={!file||analyzing} style={{width:"100%",padding:"14px",borderRadius:"9px",background:file&&!analyzing?"linear-gradient(135deg,#38BDF8,#0EA5E9)":T.bgCard2,border:`1px solid ${file&&!analyzing?"transparent":T.border}`,color:file&&!analyzing?"#040d18":T.textDim,fontSize:"14px",fontWeight:"700",cursor:file&&!analyzing?"pointer":"not-allowed",fontFamily:"'DM Mono',monospace",letterSpacing:".05em",boxShadow:file&&!analyzing?"0 4px 16px rgba(56,189,248,.25)":"none"}}>
+              {analyzing?<span className="pulse">⚡ Analyzing your bill...</span>:"⚡ Analyze My Bill"}
+            </button>
+            <div style={{textAlign:"center",marginTop:"9px",fontSize:"10px",color:T.textFaint}}>Processed by AI · Never stored externally · ~15 seconds</div>
           </div>
         )}
 
@@ -1593,7 +1340,7 @@ export default function App() {
                   <span style={{color:T.textFaint}}>·</span>
                   <span style={{fontFamily:"'DM Serif Display',serif",fontSize:"19px",color:T.text}}>{r.billingPeriod}</span>
                 </div>
-                <div style={{fontSize:"11px",color:T.textDim,display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}><span>{r.provider} · {new Date(selectedBill.analyzedAt).toLocaleDateString()}</span>{r.billType&&<span style={{background:(BILL_TYPE_COLOR[r.billType]||"#38BDF8")+"22",color:BILL_TYPE_COLOR[r.billType]||"#38BDF8",border:`1px solid ${(BILL_TYPE_COLOR[r.billType]||"#38BDF8")}44`,padding:"1px 8px",borderRadius:"4px",fontSize:"10px",fontWeight:"700",fontFamily:"monospace"}}>{BILL_TYPE_ICON[r.billType]} {r.billType}</span>}{selectedBill.context?.accountType&&<span style={{background:"rgba(56,189,248,0.08)",color:"#38BDF8",border:"1px solid rgba(56,189,248,0.2)",padding:"1px 8px",borderRadius:"4px",fontSize:"10px",fontWeight:"700",fontFamily:"monospace"}}>{selectedBill.context.accountType.replace("_"," ")}{selectedBill.context.accountType==="RESIDENTIAL"&&selectedBill.context.householdSize?` · ${selectedBill.context.householdSize}p`:""}{selectedBill.context.accountType!=="RESIDENTIAL"&&selectedBill.context.facilitySize?` · ${selectedBill.context.facilitySize}`:""}</span>}</div>
+                <div style={{fontSize:"11px",color:T.textDim,display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}><span>{r.provider} · {new Date(selectedBill.analyzedAt).toLocaleDateString()}</span>{r.billType&&<span style={{background:(BILL_TYPE_COLOR[r.billType]||"#38BDF8")+"22",color:BILL_TYPE_COLOR[r.billType]||"#38BDF8",border:`1px solid ${(BILL_TYPE_COLOR[r.billType]||"#38BDF8")}44`,padding:"1px 8px",borderRadius:"4px",fontSize:"10px",fontWeight:"700",fontFamily:"monospace"}}>{BILL_TYPE_ICON[r.billType]} {r.billType}</span>}</div>
               </div>
               <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
                 {billCompleted.length>0&&(
