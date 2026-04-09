@@ -986,16 +986,31 @@ export default function App() {
     });
   };
 
-  const dlCompareReport = (left, right) => {
-    const html = buildCompareReport(left, right, completedActions);
-    const printHtml = html.replace("</head>",`<style>@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{box-shadow:none!important}}@page{margin:0;size:A4}</style></head>`);
+  const openReport = (html, filename) => {
+    const printHtml = html.replace("</head>",`<style>@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{box-shadow:none!important}.ftr{page-break-inside:avoid}.sec{page-break-inside:avoid}}@page{margin:0;size:A4}</style></head>`);
     const blob = new Blob([printHtml], {type:"text/html"});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "comparison-" + left.result.provider.replace(/[^a-z0-9]/gi,"-").toLowerCase() + "-" + Date.now() + ".html";
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && window.innerWidth<768);
+    if(isMobileDevice) {
+      // On mobile — open in new tab so user can read/share/print from browser
+      const win = window.open(url, "_blank");
+      if(!win) {
+        // Pop-up blocked — fall back to download
+        const a = document.createElement("a"); a.href=url; a.download=filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      }
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    } else {
+      // On desktop — download file, user opens and prints
+      const a = document.createElement("a"); a.href=url; a.download=filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }
+  };
+
+  const dlCompareReport = (left, right) => {
+    const html = buildCompareReport(left, right, completedActions);
+    openReport(html, "comparison-" + left.result.provider.replace(/[^a-z0-9]/gi,"-").toLowerCase() + ".html");
     setPdfToast(true);
     setTimeout(()=>setPdfToast(false), 7000);
   };
@@ -1009,36 +1024,10 @@ export default function App() {
   // HTML fallback (used if PDF fails)
   const dl = (r)=>{ const html=buildReport(r,completedActions); const blob=new Blob([html],{type:"text/html"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=`energy-audit-${Date.now()}.html`; a.click(); URL.revokeObjectURL(url); };
 
-  // PDF export — downloads HTML with print-on-open script embedded.
-  // window.open is blocked in sandboxed iframes, so we download instead.
-  // User opens the file → browser auto-triggers print → Save as PDF.
   const dlPDF = (reportData) => {
     setPdfGenerating(true);
     const html = buildReport(reportData, completedActions);
-    // Inject print-on-load + print-optimised CSS
-    const printHtml = html.replace(
-      "</head>",
-      `<style>
-        @media print {
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .page { box-shadow: none !important; margin: 0 !important; }
-          .ftr { page-break-inside: avoid; }
-          .sec { page-break-inside: avoid; }
-          .stat { page-break-inside: avoid; }
-        }
-        @page { margin: 0; size: A4; }
-      </style>
-      </head>`
-    );
-    const blob = new Blob([printHtml], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "energy-audit-" + reportData.provider.replace(/[^a-z0-9]/gi, "-").toLowerCase() + ".html";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    openReport(html, "energy-audit-" + reportData.provider.replace(/[^a-z0-9]/gi,"-").toLowerCase() + ".html");
     setPdfGenerating(false);
     setPdfToast(true);
     setTimeout(() => setPdfToast(false), 7000);
@@ -1152,9 +1141,12 @@ export default function App() {
       {/* PDF instruction toast */}
       {pdfToast&&(
         <div style={{position:"fixed",top:"72px",left:"50%",transform:"translateX(-50%)",background:T.isDark?"#1a1a2e":"#1A1A2E",color:"#E8EAF0",padding:"12px 20px",borderRadius:"12px",fontSize:"12px",zIndex:999,boxShadow:"0 4px 24px rgba(0,0,0,0.4)",fontFamily:"'DM Sans',sans-serif",lineHeight:"1.5",maxWidth:"340px",textAlign:"center",border:"1px solid rgba(56,189,248,0.3)"}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:"11px",color:"#38BDF8",marginBottom:"5px",fontWeight:"700",letterSpacing:"0.08em"}}>📄 REPORT DOWNLOADED</div>
-          <div>Open the <strong>.html file</strong> in your browser, then press <strong style={{color:"#38BDF8"}}>⌘P</strong> (Mac) or <strong style={{color:"#38BDF8"}}>Ctrl+P</strong> (Windows) → <strong>Save as PDF</strong></div>
-          <div style={{fontSize:"10px",color:"#6B7A9A",marginTop:"5px"}}>The print dialog may open automatically</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:"11px",color:"#38BDF8",marginBottom:"5px",fontWeight:"700",letterSpacing:"0.08em"}}>📄 REPORT READY</div>
+          {/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+            ? <div>Report opened in a new tab. Tap the <strong>Share</strong> icon → <strong style={{color:"#38BDF8"}}>Print</strong> → Save as PDF</div>
+            : <div>Open the <strong>.html file</strong> in your browser, then press <strong style={{color:"#38BDF8"}}>⌘P</strong> (Mac) or <strong style={{color:"#38BDF8"}}>Ctrl+P</strong> (Windows) → <strong>Save as PDF</strong></div>
+          }
+          <div style={{fontSize:"10px",color:"#6B7A9A",marginTop:"5px"}}>Tap Share → Print for best quality</div>
         </div>
       )}
 
