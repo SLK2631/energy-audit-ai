@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// ─── MOBILE HOOK ──────────────────────────────────────────────────────────────── v5
+// ─── MOBILE HOOK ──────────────────────────────────────────────────────────────── v6
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
@@ -328,7 +328,7 @@ function buildReport(d, completedActions) {
     <div><div class="sv2l">Annual Savings Potential</div><div class="sv2v">${d.totalPotentialAnnualSavings}</div></div>
     <div><div class="sv2l">Usage Rating</div><div class="sv2v" style="font-size:18px;color:${{"LOW":"#059669","AVERAGE":"#0ea5e9","HIGH":"#d97706","VERY_HIGH":"#dc2626"}[d.usageRating]||"#047857"}">${d.usageRating.replace("_"," ")}<span style="font-family:'DM Sans',sans-serif;font-size:11px;color:#6b7280;font-weight:400;margin-left:8px">${d.usageRatingExplanation}</span></div></div>
   </div>
-  <div class="st">Recommendations</div><table><thead><tr><th>Status</th><th>Category</th><th>Action</th><th>Est. Savings</th><th>Difficulty</th></tr></thead><tbody>${recs.map(r=>{const done=completedActions&&[...completedActions].some(k=>k.includes(r.title));return`<tr class="${done?'done':''}"><td>${done?'✓ Done':'Pending'}</td><td>${r.cat}</td><td style="font-weight:600">${r.title}</td><td style="color:#059669;font-weight:700;font-family:monospace">${r.estimatedSavings}</td><td><span style="background:${r.difficulty==='Easy'?'#d1fae5':r.difficulty==='Medium'?'#fef3c7':'#fee2e2'};color:${r.difficulty==='Easy'?'#065f46':r.difficulty==='Medium'?'#92400e':'#991b1b'};padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px">${r.difficulty}</span></td></tr>`;}).join("")}</tbody></table>
+  <div class="st">Recommendations</div><table><thead><tr><th style="text-align:center;width:44px">Done</th><th>Category</th><th>Action</th><th>Est. Savings</th><th>Difficulty</th></tr></thead><tbody>${recs.map(r=>{const done=completedActions&&[...completedActions].some(k=>k.includes(r.title));return`<tr class="${done?'done':''}" style="text-align:center"><td style="text-align:center">${done?'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:#059669;color:#fff;font-size:11px;font-weight:700">&#10003;</span>':'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;border:2px solid #d1d5db;background:#fff"></span>'}</td><td>${r.cat}</td><td style="font-weight:600">${r.title}</td><td style="color:#059669;font-weight:700;font-family:monospace">${r.estimatedSavings}</td><td><span style="background:${r.difficulty==='Easy'?'#d1fae5':r.difficulty==='Medium'?'#fef3c7':'#fee2e2'};color:${r.difficulty==='Easy'?'#065f46':r.difficulty==='Medium'?'#92400e':'#991b1b'};padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px">${r.difficulty}</span></td></tr>`;}).join("")}</tbody></table>
 <div class="sec meth">
   <div class="st">Sources &amp; Methodology</div>
   <p style="font-size:12px;color:#4b5563;line-height:1.7;margin-bottom:4px">This analysis cross-references your bill against publicly available utility tariff schedules, federal energy databases, and industry benchmarks. All findings are verifiable through the primary sources listed below.</p>
