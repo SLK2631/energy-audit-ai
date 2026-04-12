@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// ─── MOBILE HOOK ──────────────────────────────────────────────────────────────── v6
+// ─── MOBILE HOOK ──────────────────────────────────────────────────────────────── v7
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
@@ -18,7 +18,7 @@ const buildSystemPrompt = (ctx={}) => {
   const isResidential = accountType === "RESIDENTIAL";
   const isIndustrial = accountType === "INDUSTRIAL";
   const isCommercial = accountType === "COMMERCIAL" || accountType === "SMALL_BUSINESS";
-  const sizeNote = isResidential && householdSize ? `\nCUSTOMER CONTEXT: Residential household with ${householdSize} people. Calibrate ALL usage benchmarks to this household size:\n- Electric: ${householdSize === "1" ? "~500-700" : householdSize === "2" ? "~700-900" : householdSize === "3" ? "~900-1100" : householdSize === "4" ? "~1000-1300" : "~1200-1600"} kWh/month typical\n- Water: ~${householdSize === "1" ? "2,500-3,500" : householdSize === "2" ? "5,000-7,000" : householdSize === "3" ? "7,000-9,000" : householdSize === "4" ? "9,000-12,000" : "11,000-15,000"} gallons/month typical\n- Gas: ~${householdSize === "1" ? "30-40" : householdSize === "2" ? "40-55" : householdSize === "3" ? "50-65" : householdSize === "4" ? "60-80" : "70-100"} therms/month typical (heating season)` : "";
+  const sizeNote = isResidential && householdSize ? `\nCUSTOMER CONTEXT: Residential household with ${householdSize} people. Calibrate ALL usage benchmarks to this household size:\n- Electric: ${householdSize === "1" ? "~500-700" : householdSize === "2" ? "~700-900" : householdSize === "3" ? "~900-1100" : householdSize === "4" ? "~1000-1300" : "~1200-1600"} kWh/month typical\n- Water: ~${householdSize === "1" ? "2,500-3,500" : householdSize === "2" ? "5,000-7,000" : householdSize === "3" ? "7,000-9,000" : householdSize === "4" ? "9,000-12,000" : "11,000-15,000"} gallons/month typical\n- Gas: ~${householdSize === "1" ? "40-80" : householdSize === "2" ? "60-100" : householdSize === "3" ? "80-120" : householdSize === "4" ? "90-140" : "100-160"} therms/month typical IN WINTER (Nov-Mar); summer is 5-20 therms. Always compare to seasonal norms, not annual averages` : "";
   const commercialNote = (isCommercial || isIndustrial) ? `\nCUSTOMER CONTEXT: ${accountType.replace("_"," ")} account${facilitySize ? ` — monthly bill range: ${facilitySize}` : ""}. Apply commercial/industrial analysis:\n- Focus on demand charges, power factor penalties, ratchet clauses, rate schedule optimization\n- Water: flag cooling tower efficiency, process water recycling, irrigation meter separation\n- Gas: evaluate interruptible service rates, transportation-only rates, CHP opportunities\n- Do NOT apply residential benchmarks — use commercial EUI and facility-type benchmarks\n- Recommendations should target operational efficiency, not behavioral residential tips` : "";
   return `You are a world-class utility bill analyst, consumer advocate, and efficiency consultant. You analyze electricity, natural gas, and water/sewer bills for residential, commercial, and industrial customers. First detect the bill type, then apply the appropriate analysis.
 
@@ -31,9 +31,9 @@ GAS: Flag incorrect therm/CCF rates, distribution charge errors, pipeline surcha
 WATER: Flag incorrect tier/block rate assignments, sewer multiplier errors (irrigation doesn't enter sewer — credit should apply), meter read anomalies, fire suppression charge misapplication, wrong irrigation vs indoor rate split.
 
 STEP 3 — USAGE ANALYSIS
-ELECTRIC: vs US average ~899 kWh/month residential; commercial/industrial benchmarks vary by facility type.
-GAS: vs US average ~50 therms/month residential; note heating/cooling degree day context and seasonal anomalies.
-WATER: vs US average ~9,000-10,000 gallons/month per HOUSEHOLD (~300 GPD per household, or ~80-100 GPD per person). The 3,000 gal/month figure is per-person only — do NOT use it as a household benchmark. A family home using 8,000-12,000 gallons/month is NORMAL. Flag as HIGH only above 15,000 gal/month, VERY_HIGH above 20,000 gal/month for a typical residential account. Flag irrigation spikes (summer months 2-3x winter baseline = normal if irrigation meter present), leak indicators (usage never drops to zero overnight on hourly data, or unexplained month-over-month spike >50%), industrial process water benchmarks.
+ELECTRIC: US residential average is ~899 kWh/month nationally, but the realistic range is 600-1,000 kWh/month depending on home size, climate, and household size. A 1-person household typically uses 500-700 kWh/month. Do NOT rate usage as LOW unless it is genuinely anomalously low (below 300 kWh/month for a typical home). Rate as AVERAGE if within the normal range for the household size provided. Rate as HIGH only above 1,200 kWh/month for a 1-2 person household. Commercial/industrial benchmarks vary by facility type and must not use residential benchmarks.
+GAS: US residential gas usage varies SIGNIFICANTLY by season. Annual average is ~50 therms/month but this is misleading — winter heating months (Nov-Mar) typically run 60-150 therms/month depending on climate zone and home size, while summer months may be only 5-20 therms. NC/Southeast average winter month is 60-90 therms for a typical home. A single-person household in winter using 60-90 therms is AVERAGE, not high. Do NOT flag winter gas usage as HIGH unless it exceeds 150 therms/month for a typical residential home. Always consider the billing month when rating usage — compare to seasonal norms, not annual averages. Rate as HIGH only if usage is 50%+ above typical seasonal norms for the region and household size.
+WATER: US residential water use is ~80-100 gallons per person per day (GPD). Use HOUSEHOLD SIZE from context to calculate the correct benchmark: 1 person = ~2,500-3,000 gal/month, 2 people = ~5,000-6,000 gal/month, 3 people = ~7,500-9,000 gal/month, 4 people = ~10,000-12,000 gal/month, 5+ people = ~12,000-15,000 gal/month. Rate as LOW only if usage is less than 50% of the household benchmark. Rate as AVERAGE if within 25% below or above the benchmark. Rate as HIGH if 50%+ above benchmark. Rate as VERY_HIGH if 2x+ above benchmark. IMPORTANT: if household size is 1 person and usage is ~2,500-4,000 gallons/month, that is AVERAGE or LOW-AVERAGE — do NOT say the average is 9,000-10,000 gallons for a single person. Always state the per-household benchmark based on the number of people. Flag irrigation spikes (summer 2-3x winter = normal if irrigation meter), leak indicators (unexplained spike >50% month-over-month with no seasonal explanation).
 
 STEP 4 — REGIONAL COMPARISON
 Compare total bill to regional averages for similar facility type and climate zone.
@@ -247,7 +247,7 @@ const ChartTip = ({active,payload,label,T}) => {
       <div style={{color:T.textDim,marginBottom:"5px",fontSize:"10px"}}>{label}</div>
       {payload.map((p,i)=>(
         <div key={i} style={{color:p.color,fontWeight:"600"}}>
-          {p.name}: {p.name==="Cost"?`$${p.value.toFixed(2)}`:p.name==="Rate"?`$${p.value.toFixed(3)}`:`${p.value} kWh`}
+          {p.name}: {p.name==="Cost"?`$${p.value.toFixed(2)}`:p.name==="Rate"?`$${p.value.toFixed(3)}`:`${p.value}`}
         </div>
       ))}
     </div>
@@ -557,7 +557,7 @@ const TrendKPIs = ({bills, completedActions, T}) => {
         {label:"Cost Trend",v:bills.length>1?(cd>=0?`+$${cd.toFixed(2)}`:`-$${Math.abs(cd).toFixed(2)}`):"—",c:cd>10?"#FF3B30":cd<-10?"#34C759":"#FF9500",note:"first → latest"},
         {label:"Usage Trend",v:bills.length>1?(kd>=0?`+${kd.toFixed(0)}`:`-${Math.abs(kd).toFixed(0)}`)+` ${usageUnit}`:"—",c:kd>50?"#FF9500":kd<-50?"#34C759":T.textSub,note:"first → latest"},
         {label:"Flagged Bills",v:`${susp}/${bills.length}`,c:susp>0?"#FF3B30":"#34C759",note:susp>0?"need attention":"all clear"},
-        {label:"Actions Completed",v:`${completed}/${totalRecs}`,c:completed>0?"#34C759":T.textSub,note:completed>0?`$${[...completedActions].reduce((s,aid)=>{const b=bills.find(b=>aid.startsWith(b.id));if(!b)return s;const rec=allRecs(b).find(r=>actionId(r.billId,r.cat,r.title)===aid);return s+(rec?parseMonthlySavings(rec.estimatedSavings):0);},0).toFixed(0)}/mo saved`:"no actions yet"},
+
       ].map(x=>(
         <div key={x.label} style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"10px",padding:"16px 18px"}}>
           <div style={{fontSize:"9px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"6px"}}>{x.label}</div>
@@ -1236,18 +1236,11 @@ export default function App() {
               <span style={{position:"absolute",top:"4px",right:"4px",background:"#FF9500",color:"#030714",borderRadius:"50%",width:"14px",height:"14px",fontSize:"8px",fontWeight:"700",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"monospace"}}>2</span>
             </button>
           )}
-          <button className={`nb ${view==="tracker"?"na":""}`} onClick={()=>setView("tracker")} style={{position:"relative"}}>
-            💰 Savings
-            {completedCount>0&&<span style={{position:"absolute",top:"4px",right:"4px",background:"#34C759",color:"#030714",borderRadius:"50%",width:"14px",height:"14px",fontSize:"8px",fontWeight:"700",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"monospace"}}>{completedCount}</span>}
-          </button>
+
         </nav>
 
         <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-          {totalTrackerSaved>0&&(
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:"11px",color:"#34C759",background:"rgba(52,199,89,0.1)",border:"1px solid rgba(52,199,89,0.2)",padding:"4px 10px",borderRadius:"20px"}}>
-              ${totalTrackerSaved.toFixed(0)}/mo saved
-            </div>
-          )}
+
           <button onClick={()=>setDarkMode(d=>!d)} style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"18px",padding:"5px 11px",cursor:"pointer",fontSize:"12px",display:"flex",alignItems:"center",gap:"5px",color:T.textSub}}>
             {darkMode?"☀ Light":"🌙 Dark"}
           </button>
@@ -1430,11 +1423,19 @@ export default function App() {
                       ))}
                     </div>
                     {!bulkRunning&&bulkProgress.every(x=>x.status==="done"||x.status==="error")&&(
-                      <div style={{padding:"12px 14px",borderTop:`1px solid ${T.border}`,background:"rgba(52,199,89,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{padding:"12px 14px",borderTop:`1px solid ${T.border}`,background:"rgba(52,199,89,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"8px"}}>
                         <span style={{fontSize:"12px",color:"#34C759",fontWeight:"700"}}>✅ {bulkProgress.filter(x=>x.status==="done").length} bills analyzed successfully</span>
-                        <button onClick={()=>{setBulkFiles([]);setBulkProgress([]);setView("history");}} style={{background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",color:"#040d18",padding:"7px 14px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontWeight:"700",fontFamily:"monospace"}}>
-                          View in History →
-                        </button>
+                        <div style={{display:"flex",gap:"8px"}}>
+                          <button onClick={()=>{
+                            const doneBills=bills.filter(b=>bulkProgress.some(p=>p.status==="done"&&p.name&&b.result));
+                            if(doneBills.length>0){dlPDF(doneBills[0].result);}
+                          }} style={{background:T.bgCard,border:`1px solid ${T.border}`,color:T.textSub,padding:"7px 12px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontWeight:"700",fontFamily:"monospace"}}>
+                            ↓ PDF (Latest)
+                          </button>
+                          <button onClick={()=>{setBulkFiles([]);setBulkProgress([]);setView("history");}} style={{background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",color:"#040d18",padding:"7px 14px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontWeight:"700",fontFamily:"monospace"}}>
+                            View in History →
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1469,8 +1470,8 @@ export default function App() {
                   <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"14px",marginBottom:"18px"}}>
                     {[
                       {title:"Monthly Cost ($)",height:165,el:<LineChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`} domain={[dataMin=>Math.floor(dataMin*0.9), dataMax=>Math.ceil(dataMax*1.05)]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Cost" stroke="#38BDF8" strokeWidth={2} dot={{fill:"#38BDF8",r:4,strokeWidth:0}} activeDot={{r:6}} name="Cost"/></LineChart>},
-                      {title:"Monthly Usage (kWh)",height:165,el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T}/>}/><ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4"/><Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name="kWh"/></BarChart>},
-                      {title:"Rate per kWh ($)",height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v.toFixed(3)}`} domain={[dataMin=>Math.floor(dataMin*0.9*1000)/1000, dataMax=>Math.ceil(dataMax*1.05*1000)/1000]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
+                      {title:`Monthly Usage (${usageUnit})`,height:165,el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T}/>}/>{usageUnit==="kWh"&&<ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4"/>}<Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name={usageUnit}/></BarChart>},
+                      {title:`Rate per ${usageUnit} ($)`,height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v.toFixed(3)}`} domain={[dataMin=>Math.floor(dataMin*0.9*1000)/1000, dataMax=>Math.ceil(dataMax*1.05*1000)/1000]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
                     ].map(({title,height,el})=>(
                       <div key={title} style={{...CARD}}>
                         <div style={{fontSize:"9px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"12px",fontFamily:"monospace"}}>{title}</div>
@@ -1572,10 +1573,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ══ SAVINGS TRACKER ══ */}
-        {view==="tracker"&&(
-          <SavingsView bills={bills} completedActions={completedActions} onToggle={toggleAction} T={T} isMobile={isMobile}/>
-        )}
+
 
         {/* ══ COMPARE ══ */}
         {view==="compare"&&compareIds.size===2&&(
