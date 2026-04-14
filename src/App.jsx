@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// ─── MOBILE HOOK ──────────────────────────────────────────────────────────────── v7
+// ─── MOBILE HOOK ──────────────────────────────────────────────────────────────── v8
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
@@ -385,7 +385,7 @@ function buildCompareReport(left, right, completedActions) {
     const better = invert ? diff < 0 : diff > 0;
     const color = better ? "#059669" : "#dc2626";
     const sign = diff > 0 ? "+" : diff < 0 ? "-" : "";
-    return {label:`${sign}${prefix}${Math.abs(diff).toFixed(prefix==="$"?2:0)} (${pct}%)`, color};
+    return {label:`${sign}${prefix}${Math.abs(diff)<0.01&&prefix==="$"?Math.abs(diff).toFixed(3):Math.abs(diff).toFixed(prefix==="$"?2:0)} (${pct}%)`, color};
   };
   const metrics = [
     {label:"Total Charged", vl:`$${charged_l.toFixed(2)}`, vr:`$${charged_r.toFixed(2)}`, d:deltaLabel(charged_l,charged_r,"$",true)},
@@ -555,7 +555,7 @@ const TrendKPIs = ({bills, completedActions, T}) => {
       {[
         {label:"Avg Monthly Bill",v:`$${avg.toFixed(2)}`,c:T.text,note:`${bills.length} bill${bills.length>1?"s":""} tracked`},
         {label:"Cost Trend",v:bills.length>1?(cd>=0?`+$${cd.toFixed(2)}`:`-$${Math.abs(cd).toFixed(2)}`):"—",c:cd>10?"#FF3B30":cd<-10?"#34C759":"#FF9500",note:"first → latest"},
-        {label:"Usage Trend",v:bills.length>1?(kd>=0?`+${kd.toFixed(0)}`:`-${Math.abs(kd).toFixed(0)}`)+` ${usageUnit}`:"—",c:kd>50?"#FF9500":kd<-50?"#34C759":T.textSub,note:"first → latest"},
+        {label:"Usage Trend",v:bills.length>1?(kd>=0?`+${kd.toFixed(0)}`:`-${Math.abs(kd).toFixed(0)}`)+` ${usageUnit}`:"—",c:(()=>{const thresh=usageUnit==="gallons"?500:usageUnit==="therms"?10:50;return kd>thresh?"#FF9500":kd<-thresh?"#34C759":T.textSub;})(),note:"first → latest"},
         {label:"Flagged Bills",v:`${susp}/${bills.length}`,c:susp>0?"#FF3B30":"#34C759",note:susp>0?"need attention":"all clear"},
 
       ].map(x=>(
@@ -809,8 +809,15 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) 
   const [a, b] = [...compareIds].map(id => bills.find(x=>x.id===id)).filter(Boolean);
   if (!a || !b) return null;
 
-  // Sort so earlier bill is always left
-  const [left, right] = new Date(a.analyzedAt) <= new Date(b.analyzedAt) ? [a,b] : [b,a];
+  // Sort by billing period start date, not upload time
+  // Extracts first date found in billingPeriod string for comparison
+  const extractBillDate = (bill) => {
+    const p = bill.result.billingPeriod || "";
+    const m = p.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/) || p.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s*(\d{4})/i);
+    if(m) return new Date(p.slice(0, 20));
+    return new Date(bill.analyzedAt);
+  };
+  const [left, right] = extractBillDate(a) <= extractBillDate(b) ? [a,b] : [b,a];
   const rl = left.result, rr = right.result;
 
   const delta = (vA, vB, prefix="$", invert=false) => {
@@ -819,7 +826,7 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) 
     const better = invert ? diff < 0 : diff > 0;
     const color = diff === 0 ? "#6B7A9A" : better ? "#34C759" : "#FF3B30";
     const sign = diff > 0 ? "+" : diff < 0 ? "-" : "";
-    return { diff, pct, color, label: diff === 0 ? "—" : `${sign}${prefix}${Math.abs(diff).toFixed(prefix==="$"?2:0)} (${pct}%)` };
+    return { diff, pct, color, label: diff === 0 ? "—" : `${sign}${prefix}${Math.abs(diff)<0.01&&prefix==="$"?Math.abs(diff).toFixed(3):Math.abs(diff).toFixed(prefix==="$"?2:0)} (${pct}%)` };
   };
 
   const charged_l = parseNum(rl.totalCharged), charged_r = parseNum(rr.totalCharged);
@@ -1282,7 +1289,7 @@ export default function App() {
               <div style={{fontSize:"14px",color:T.textSub,lineHeight:"1.7",maxWidth:"420px",margin:"0 auto"}}>Upload a bill — or an entire year at once. AI verifies every charge, benchmarks costs regionally, and surfaces every dollar you can save.</div>
               <div style={{display:"flex",gap:"14px",justifyContent:"center",marginTop:"14px",flexWrap:"wrap"}}>
                 {bills.length>0&&<span style={{display:"inline-flex",alignItems:"center",gap:"8px"}}><span style={{fontSize:"11px",color:"#38BDF8",cursor:"pointer",textDecoration:"underline"}} onClick={()=>setView("history")}>📊 {bills.length} bill{bills.length>1?"s":""} in history →</span><span onClick={deleteAll} style={{fontSize:"10px",color:"#FF6B6B",cursor:"pointer",background:"rgba(255,59,48,0.1)",border:"1px solid rgba(255,59,48,0.25)",padding:"2px 8px",borderRadius:"4px",fontFamily:"monospace",fontWeight:"700",whiteSpace:"nowrap"}}>🗑 Clear All</span></span>}
-                {completedCount>0&&<span style={{fontSize:"11px",color:"#34C759",cursor:"pointer",textDecoration:"underline"}} onClick={()=>setView("tracker")}>💰 ${totalTrackerSaved.toFixed(0)}/mo saved →</span>}
+                {completedCount>0&&
               </div>
             </div>
 
