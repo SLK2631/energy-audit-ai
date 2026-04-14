@@ -10,7 +10,7 @@ const useIsMobile = () => {
   }, []);
   return isMobile;
 };
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area } from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
 // ─── SYSTEM PROMPT ─────────────────────────────────────────────────────────────
 const buildSystemPrompt = (ctx={}) => {
@@ -326,7 +326,7 @@ function buildReport(d, completedActions) {
   <div class="body">
   <div class="pri"><div class="pl">★ Priority Action</div><div class="pt">${d.priorityAction}</div></div>
   <div class="sec"><div class="st">Bill Summary</div><div class="g3"><div class="stat"><div class="sl">Total Charged</div><div class="sv">${d.totalCharged}</div></div><div class="stat"><div class="sl">Usage</div><div class="sv">${d.totalUsage||d.totalKwh}</div></div><div class="stat"><div class="sl">Rate/Unit</div><div class="sv">${d.ratePerUnit||d.ratePerKwh}</div></div></div></div>
-  <div class="sec"><div class="st">Regional Comparison</div><div class="g3"><div class="stat"><div class="sl">Your Bill</div><div class="sv">${d.regionalComparison.yourBill}</div></div><div class="stat"><div class="sl">Regional Avg</div><div class="sv" style="color:#059669">${d.regionalComparison.regionalAverage}</div></div><div class="stat"><div class="sl">Difference</div><div class="sv" style="color:${d.regionalComparison.percentageDifference.startsWith('+')?'#dc2626':'#059669'}">${d.regionalComparison.percentageDifference}</div></div></div></div>
+  <div class="sec"><div class="st">Regional Comparison</div><div class="g3"><div class="stat"><div class="sl">Your Bill</div><div class="sv">${d.regionalComparison?.yourBill||'N/A'}</div></div><div class="stat"><div class="sl">Regional Avg</div><div class="sv" style="color:#059669">${d.regionalComparison?.regionalAverage||'N/A'}</div></div><div class="stat"><div class="sl">Difference</div><div class="sv" style="color:${(d.regionalComparison?.percentageDifference||'+0%').startsWith('+')?'#dc2626':'#059669'}">${d.regionalComparison?.percentageDifference||'N/A'}</div></div></div></div>
   <div class="sec">
   <div class="sv2" style="margin-bottom:18px">
     <div><div class="sv2l">Monthly Savings Potential</div><div class="sv2v">${d.totalPotentialMonthlySavings}</div></div>
@@ -570,6 +570,59 @@ const TrendKPIs = ({bills, completedActions, T}) => {
           <div style={{fontSize:"9px",color:T.textFaint,marginTop:"4px"}}>{x.note}</div>
         </div>
       ))}
+    </div>
+  );
+};
+
+// ─── BILL CHAT ────────────────────────────────────────────────────────────────
+const QUICK_QS = ["Why is my bill so high?","How do I dispute a charge?","Which recommendation saves the most?","Walk me through the priority action","What's causing my usage rating?","How do I switch rate plans?"];
+
+const BillChat = ({billResult, T}) => {
+  const [messages, setMessages] = useState([{role:"assistant",content:`Hi! I've analyzed your ${billResult.provider} bill for ${billResult.billingPeriod} — ${billResult.totalCharged} for ${billResult.totalUsage||billResult.totalKwh}. Ask me anything about the charges, how to act on a recommendation, or what's driving your costs.`}]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef();
+  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages]);
+  const send = async(text) => {
+    const q=(text||input).trim(); if(!q||loading) return;
+    setInput("");
+    const history=messages.slice(-10);
+    const newMsgs=[...history,{role:"user",content:q}];
+    setMessages(p=>[...p,{role:"user",content:q}]); setLoading(true);
+    try {
+      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:buildChatPrompt(billResult),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})});
+      if(!res.ok) throw new Error(`Server error ${res.status}`);
+      const data=await res.json();
+      if(data.error) throw new Error(data.error.message);
+      const reply=data.content?.find(b=>b.type==="text")?.text||"Sorry, no response.";
+      setMessages(p=>[...p,{role:"assistant",content:reply}]);
+    } catch(e) { setMessages(p=>[...p,{role:"assistant",content:"⚠ Error: "+(e.message||"Try again.")}]); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"12px",overflow:"hidden",marginTop:"14px"}}>
+      <div style={{padding:"11px 15px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:"8px",background:T.bgCard2}}>
+        <div style={{width:"7px",height:"7px",borderRadius:"50%",background:"#34C759",boxShadow:"0 0 5px #34C759"}}/>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:"10px",fontWeight:"700",letterSpacing:"0.12em",color:"#38BDF8",textTransform:"uppercase"}}>Bill Chat</span>
+        <span style={{fontSize:"11px",color:T.textDim}}>· Ask anything about this bill</span>
+      </div>
+      <div style={{padding:"8px 10px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:"5px",flexWrap:"wrap",background:T.chatBg}}>
+        {QUICK_QS.map(q=>(<button key={q} onClick={()=>send(q)} disabled={loading} style={{background:T.bgCard,border:`1px solid ${T.border}`,color:T.textSub,padding:"3px 9px",borderRadius:"20px",fontSize:"11px",cursor:loading?"not-allowed":"pointer",fontFamily:"inherit",opacity:loading?0.5:1}}>{q}</button>))}
+      </div>
+      <div style={{height:"280px",overflowY:"auto",padding:"12px 14px",display:"flex",flexDirection:"column",gap:"9px",background:T.chatBg}}>
+        {messages.map((m,i)=>(
+          <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",gap:"8px",alignItems:"flex-start"}}>
+            {m.role==="assistant"&&<div style={{width:"22px",height:"22px",borderRadius:"50%",background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px",flexShrink:0,marginTop:"2px"}}>⚡</div>}
+            <div style={{maxWidth:"78%",background:m.role==="user"?T.chatUserBubble:T.chatBotBubble,border:m.role==="user"?"1px solid rgba(56,189,248,0.2)":`1px solid ${T.chatBotBorder}`,borderRadius:m.role==="user"?"12px 12px 3px 12px":"12px 12px 12px 3px",padding:"8px 12px",fontSize:"13px",lineHeight:"1.6",color:T.text,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{m.content}</div>
+          </div>
+        ))}
+        {loading&&<div style={{display:"flex",alignItems:"center",gap:"8px"}}><div style={{width:"22px",height:"22px",borderRadius:"50%",background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px"}}>⚡</div><div style={{background:T.chatBotBubble,border:`1px solid ${T.chatBotBorder}`,borderRadius:"12px 12px 12px 3px",padding:"8px 13px",fontSize:"13px",color:T.textDim}}>●●●</div></div>}
+        <div ref={bottomRef}/>
+      </div>
+      <div style={{padding:"9px 10px",borderTop:`1px solid ${T.border}`,display:"flex",gap:"7px",background:T.chatBg}}>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Ask about this bill..." disabled={loading} style={{flex:1,background:T.chatInputBg,border:`1px solid ${T.chatInputBorder}`,borderRadius:"7px",padding:"8px 12px",color:T.text,fontSize:"13px",fontFamily:"inherit",outline:"none"}}/>
+        <button onClick={()=>send()} disabled={!input.trim()||loading} style={{background:input.trim()&&!loading?"linear-gradient(135deg,#38BDF8,#0EA5E9)":"rgba(56,189,248,0.1)",border:"none",borderRadius:"7px",padding:"8px 14px",cursor:input.trim()&&!loading?"pointer":"not-allowed",color:input.trim()&&!loading?"#050c14":"#38BDF8",fontSize:"14px",flexShrink:0}}>↑</button>
+      </div>
     </div>
   );
 };
@@ -824,6 +877,7 @@ export default function App() {
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:8000,system:buildSystemPrompt({accountType,householdSize,facilitySize}),messages:[{role:"user",content:blocks}]})
     });
+    if(!res.ok) throw new Error(`API error ${res.status} — please try again`);
     const data = await res.json();
     if(data.error) throw new Error(data.error.message);
     const text = data.content?.find(b=>b.type==="text")?.text||"";
