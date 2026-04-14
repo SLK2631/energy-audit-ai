@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// ─── MOBILE HOOK ──────────────────────────────────────────────────────────────── v8
+// ─── MOBILE HOOK ──────────────────────────────────────────────────────────────── v10
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
@@ -171,8 +171,13 @@ const BILL_TYPE_COLOR = {"ELECTRIC":"#38BDF8","GAS":"#FF9500","WATER":"#34C759",
 
 const shortPeriod = (p) => {
   if(!p||p==="N/A") return "Unknown";
+  // Named months: "Nov 23 – Dec 23, 2025"
   const m = p.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[^–—-]*[–—-][^–—-]*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s*(\d{4})/i);
-  return m?`${m[1]}–${m[2]} '${m[3].slice(2)}`:p.slice(0,18);
+  if(m) return `${m[1]}–${m[2]} '${m[3].slice(2)}`;
+  // Numeric: "07/22/2025 - 08/21/2025" → "07/22–08/21 '25"
+  const n = p.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})[^\d]*(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+  if(n) return `${n[1]}/${n[2]}–${n[4]}/${n[5]} '${String(n[6]).slice(-2)}`;
+  return p.slice(0,18);
 };
 
 // Extract low-end monthly savings estimate from strings like "$18–$30/month" or "One-time $100"
@@ -328,7 +333,7 @@ function buildReport(d, completedActions) {
     <div><div class="sv2l">Annual Savings Potential</div><div class="sv2v">${d.totalPotentialAnnualSavings}</div></div>
     <div><div class="sv2l">Usage Rating</div><div class="sv2v" style="font-size:18px;color:${{"LOW":"#059669","AVERAGE":"#0ea5e9","HIGH":"#d97706","VERY_HIGH":"#dc2626"}[d.usageRating]||"#047857"}">${d.usageRating.replace("_"," ")}<span style="font-family:'DM Sans',sans-serif;font-size:11px;color:#6b7280;font-weight:400;margin-left:8px">${d.usageRatingExplanation}</span></div></div>
   </div>
-  <div class="st">Recommendations</div><table><thead><tr><th style="text-align:center;width:44px">Done</th><th>Category</th><th>Action</th><th>Est. Savings</th><th>Difficulty</th></tr></thead><tbody>${recs.map(r=>{const done=completedActions&&[...completedActions].some(k=>k.includes(r.title));return`<tr class="${done?'done':''}" style="text-align:center"><td style="text-align:center">${done?'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:#059669;color:#fff;font-size:11px;font-weight:700">&#10003;</span>':'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;border:2px solid #d1d5db;background:#fff"></span>'}</td><td>${r.cat}</td><td style="font-weight:600">${r.title}</td><td style="color:#059669;font-weight:700;font-family:monospace">${r.estimatedSavings}</td><td><span style="background:${r.difficulty==='Easy'?'#d1fae5':r.difficulty==='Medium'?'#fef3c7':'#fee2e2'};color:${r.difficulty==='Easy'?'#065f46':r.difficulty==='Medium'?'#92400e':'#991b1b'};padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px">${r.difficulty}</span></td></tr>`;}).join("")}</tbody></table>
+  <div class="st">Recommendations</div><table><thead><tr><th style="text-align:center;width:44px">Done</th><th>Category</th><th>Action</th><th>Est. Savings</th><th>Difficulty</th></tr></thead><tbody>${recs.map(r=>{const done=completedActions&&[...completedActions].some(k=>k.endsWith("::"+r.title));return`<tr class="${done?'done':''}" style="text-align:center"><td style="text-align:center">${done?'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:#059669;color:#fff;font-size:11px;font-weight:700">&#10003;</span>':'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;border:2px solid #d1d5db;background:#fff"></span>'}</td><td>${{negotiation:"Negotiation",ratePlans:"Rate Plans",providers:"Providers",equipment:"Equipment",behavioral:"Habits",incentives:"Rebates"}[r.cat]||r.cat}</td><td style="font-weight:600">${r.title}</td><td style="color:#059669;font-weight:700;font-family:monospace">${r.estimatedSavings}</td><td><span style="background:${r.difficulty==='Easy'?'#d1fae5':r.difficulty==='Medium'?'#fef3c7':'#fee2e2'};color:${r.difficulty==='Easy'?'#065f46':r.difficulty==='Medium'?'#92400e':'#991b1b'};padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px">${r.difficulty}</span></td></tr>`;}).join("")}</tbody></table>
 <div class="sec meth">
   <div class="st">Sources &amp; Methodology</div>
   <p style="font-size:12px;color:#4b5563;line-height:1.7;margin-bottom:4px">This analysis cross-references your bill against publicly available utility tariff schedules, federal energy databases, and industry benchmarks. All findings are verifiable through the primary sources listed below.</p>
@@ -402,7 +407,7 @@ function buildCompareReport(left, right, completedActions) {
   const shared = recsL.filter(r=>titlesR.has(r.title));
   const onlyL = recsL.filter(r=>!titlesR.has(r.title));
   const onlyR = recsR.filter(r=>!titlesL.has(r.title));
-  const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="48" height="48" style="border-radius:9px;box-shadow:0 0 14px rgba(56,189,248,0.5);border:1px solid rgba(56,189,248,0.3);flex-shrink:0"><defs><radialGradient id="bgGlow" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="#1a3a5c" stop-opacity="0.8"/><stop offset="100%" stop-color="#07080f" stop-opacity="0"/></radialGradient><filter id="gs" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="gst" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="fg" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#67e8f9"/></linearGradient><linearGradient id="dg" x1="0.3" y1="0" x2="0.7" y2="1"><stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#38BDF8"/></linearGradient><linearGradient id="bg2" x1="0" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#67e8f9"/><stop offset="100%" stop-color="#00d4ff"/></linearGradient></defs><rect width="120" height="120" fill="#0c1020" rx="20"/><rect width="120" height="120" fill="url(#bgGlow)" rx="20" opacity="0.4"/><polygon points="60,17 97.2,38.5 97.2,81.5 60,103 22.8,81.5 22.8,38.5" fill="none" stroke="#38BDF8" stroke-width="2.2" filter="url(#gs)" opacity="1"/><line x1="60" y1="60" x2="60" y2="17" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><line x1="60" y1="60" x2="97.2" y2="81.5" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><line x1="60" y1="60" x2="22.8" y2="81.5" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><circle cx="60" cy="17" r="4" fill="#00d4ff" filter="url(#gst)" opacity="0.95"/><circle cx="97.2" cy="81.5" r="4" fill="#00d4ff" filter="url(#gst)" opacity="0.95"/><circle cx="22.8" cy="81.5" r="4" fill="#00d4ff" filter="url(#gst)" opacity="0.95"/><circle cx="60" cy="60" r="2.8" fill="#67e8f9" filter="url(#gst)" opacity="0.9"/><path d="M83.5,37 L73,51.5 L79.5,51.5 L74.5,63 L86,47 L79,47 Z" fill="url(#bg2)" filter="url(#gs)" opacity="0.97"/><path d="M60,71.5 C60,71.5 50.5,80 50.5,86.5 C50.5,92.5 54.7,97.5 60,97.5 C65.3,97.5 69.5,92.5 69.5,86.5 C69.5,80 60,71.5 60,71.5 Z" fill="url(#dg)" filter="url(#gs)" opacity="0.93"/><path d="M41,36.5 C39.5,40 35.5,45.5 35.5,52 C35.5,58.5 38,63 41,64.5 C44,63 46.5,58.5 46.5,52 C46.5,48 44.5,44 43.5,40.5 C43.5,40.5 45.5,45 45.5,50 C45.5,54 43.5,57.5 41,59 C38.5,57.5 36.5,54 36.5,50 C36.5,44.5 41,36.5 41,36.5 Z" fill="url(#fg)" filter="url(#gs)" opacity="0.95"/></svg>`;
+  const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="48" height="48" style="border-radius:9px;box-shadow:0 0 14px rgba(56,189,248,0.5);border:1px solid rgba(56,189,248,0.3);flex-shrink:0"><defs><radialGradient id="bgGlow2" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="#1a3a5c" stop-opacity="0.8"/><stop offset="100%" stop-color="#07080f" stop-opacity="0"/></radialGradient><filter id="gs2" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="gst2" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="fg2" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#67e8f9"/></linearGradient><linearGradient id="dg2" x1="0.3" y1="0" x2="0.7" y2="1"><stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#38BDF8"/></linearGradient><linearGradient id="bg22" x1="0" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#67e8f9"/><stop offset="100%" stop-color="#00d4ff"/></linearGradient></defs><rect width="120" height="120" fill="#0c1020" rx="20"/><rect width="120" height="120" fill="url(#bgGlow2)" rx="20" opacity="0.4"/><polygon points="60,17 97.2,38.5 97.2,81.5 60,103 22.8,81.5 22.8,38.5" fill="none" stroke="#38BDF8" stroke-width="2.2" filter="url(#gs2)" opacity="1"/><line x1="60" y1="60" x2="60" y2="17" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><line x1="60" y1="60" x2="97.2" y2="81.5" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><line x1="60" y1="60" x2="22.8" y2="81.5" stroke="#22d3ee" stroke-width="1.1" opacity="0.6" stroke-dasharray="4,3"/><circle cx="60" cy="17" r="4" fill="#00d4ff" filter="url(#gst2)" opacity="0.95"/><circle cx="97.2" cy="81.5" r="4" fill="#00d4ff" filter="url(#gst2)" opacity="0.95"/><circle cx="22.8" cy="81.5" r="4" fill="#00d4ff" filter="url(#gst2)" opacity="0.95"/><circle cx="60" cy="60" r="2.8" fill="#67e8f9" filter="url(#gst2)" opacity="0.9"/><path d="M83.5,37 L73,51.5 L79.5,51.5 L74.5,63 L86,47 L79,47 Z" fill="url(#bg22)" filter="url(#gs2)" opacity="0.97"/><path d="M60,71.5 C60,71.5 50.5,80 50.5,86.5 C50.5,92.5 54.7,97.5 60,97.5 C65.3,97.5 69.5,92.5 69.5,86.5 C69.5,80 60,71.5 60,71.5 Z" fill="url(#dg2)" filter="url(#gs2)" opacity="0.93"/><path d="M41,36.5 C39.5,40 35.5,45.5 35.5,52 C35.5,58.5 38,63 41,64.5 C44,63 46.5,58.5 46.5,52 C46.5,48 44.5,44 43.5,40.5 C43.5,40.5 45.5,45 45.5,50 C45.5,54 43.5,57.5 41,59 C38.5,57.5 36.5,54 36.5,50 C36.5,44.5 41,36.5 41,36.5 Z" fill="url(#fg2)" filter="url(#gs2)" opacity="0.95"/></svg>`;
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bill Comparison Report</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;600&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -565,241 +570,6 @@ const TrendKPIs = ({bills, completedActions, T}) => {
           <div style={{fontSize:"9px",color:T.textFaint,marginTop:"4px"}}>{x.note}</div>
         </div>
       ))}
-    </div>
-  );
-};
-
-// ─── SAVINGS TRACKER VIEW ──────────────────────────────────────────────────────
-const SavingsView = ({bills, completedActions, onToggle, T, isMobile=false}) => {
-  const allActions = bills.flatMap(allRecs);
-  const completed = allActions.filter(r=>completedActions.has(actionId(r.billId,r.cat,r.title)));
-  const pending = allActions.filter(r=>!completedActions.has(actionId(r.billId,r.cat,r.title)));
-  // Cap completed savings per bill total too
-  const totalMonthlySaved = bills.reduce((sum,bill)=>{
-    const billTotal = parseNum(bill.result.totalCharged);
-    const billDone = allRecs(bill).filter(r=>completedActions.has(actionId(r.billId,r.cat,r.title)));
-    const billSaved = billDone.reduce((s,r)=>s+parseMonthlySavings(r.estimatedSavings),0);
-    return sum + Math.min(billSaved, billTotal);
-  },0);
-  const annualSaved = totalMonthlySaved * 12;
-  // Cap per-bill savings at that bill's total charged amount
-  const totalPotential = bills.reduce((sum,bill)=>{
-    const billTotal = parseNum(bill.result.totalCharged);
-    const billSavings = allRecs(bill).reduce((s,r)=>s+parseMonthlySavings(r.estimatedSavings),0);
-    return sum + Math.min(billSavings, billTotal);
-  },0);
-  const pct = totalPotential>0?Math.min(100,(totalMonthlySaved/totalPotential)*100):0;
-
-  // Progress by category
-  const catStats = Object.keys(CAT_LABELS).map(cat=>{
-    const catActions = allActions.filter(r=>r.cat===cat);
-    const catDone = catActions.filter(r=>completedActions.has(actionId(r.billId,r.cat,r.title)));
-    const catSaved = catDone.reduce((s,r)=>s+parseMonthlySavings(r.estimatedSavings),0);
-    return {cat, label:CAT_LABELS[cat], icon:CAT_ICONS[cat], total:catActions.length, done:catDone.length, saved:catSaved};
-  }).filter(x=>x.total>0);
-
-  // Build cumulative savings chart data — one point per completed action
-  const chartPts = completed.reduce((acc,r,i)=>{
-    const prev=acc[i]?.total||0;
-    return [...acc,{name:`#${i+1}`,total:Math.round(prev+parseMonthlySavings(r.estimatedSavings)),action:r.title}];
-  },[]);
-
-  const CARD = {background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"10px",padding:"18px"};
-
-  return (
-    <div>
-      {/* Hero */}
-      <div style={{background:T.trackerHeroBg,border:`1px solid ${T.trackerHeroBorder}`,borderRadius:"14px",padding:"28px 32px",marginBottom:"22px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:"20px"}}>
-          <div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:"10px",color:"#34C759",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"8px"}}>Savings Tracker</div>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"42px",color:"#34C759",fontWeight:"400",lineHeight:1}}>${totalMonthlySaved.toFixed(0)}<span style={{fontSize:"18px",color:T.textSub,fontFamily:"'DM Sans',sans-serif",fontWeight:"400"}}>/mo</span></div>
-            <div style={{fontSize:"12px",color:T.textSub,marginTop:"6px"}}>${annualSaved.toFixed(0)}/year locked in · {completed.length} of {allActions.length} actions done</div>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:"10px",color:T.textDim,marginBottom:"4px"}}>POTENTIAL UNLOCKED</div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:"28px",fontWeight:"700",color:T.text}}>{Math.round(pct)}%</div>
-            <div style={{fontSize:"11px",color:T.textDim,marginTop:"2px"}}>${totalPotential.toFixed(0)}/mo total available</div>
-          </div>
-        </div>
-        {/* Progress bar */}
-        <div style={{marginTop:"20px"}}>
-          <div style={{height:"8px",background:T.bgCard3,borderRadius:"4px",overflow:"hidden"}}>
-            <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,#34C759,#38BDF8)",borderRadius:"4px",transition:"width 0.6s ease"}}/>
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between",marginTop:"5px"}}>
-            <span style={{fontSize:"10px",color:T.textDim}}>$0</span>
-            <span style={{fontSize:"10px",color:T.textDim}}>${totalPotential.toFixed(0)}/mo potential</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Chart + Category breakdown */}
-      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"14px",marginBottom:"18px"}}>
-        {/* Cumulative savings chart */}
-        <div style={{...CARD}}>
-          <div style={{fontSize:"10px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"14px",fontFamily:"monospace"}}>Savings Unlocked Over Actions</div>
-          {chartPts.length>0?(
-            <ResponsiveContainer width="100%" height={170}>
-              <AreaChart data={chartPts} margin={{top:5,right:8,left:-20,bottom:5}}>
-                <defs>
-                  <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#34C759" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#34C759" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={T.chartGrid}/>
-                <XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/>
-                <YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`}/>
-                <Tooltip content={({active,payload,label})=>{
-                  if(!active||!payload?.length) return null;
-                  return <div style={{background:T.chartTip,border:`1px solid ${T.chartTipBorder}`,borderRadius:"7px",padding:"9px 13px",fontFamily:"monospace",fontSize:"11px",color:T.text}}>
-                    <div style={{color:T.textDim,fontSize:"10px",marginBottom:"3px"}}>{payload[0]?.payload?.action}</div>
-                    <div style={{color:"#34C759",fontWeight:"700"}}>${payload[0]?.value}/mo cumulative</div>
-                  </div>;
-                }}/>
-                <Area type="monotone" dataKey="total" stroke="#34C759" strokeWidth={2} fill="url(#sg)" dot={{fill:"#34C759",r:4,strokeWidth:0}}/>
-              </AreaChart>
-            </ResponsiveContainer>
-          ):(
-            <div style={{height:"170px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:T.textDim}}>
-              <div style={{fontSize:"32px",marginBottom:"8px",opacity:0.2}}>✓</div>
-              <div style={{fontSize:"12px"}}>Mark actions complete to see savings grow</div>
-            </div>
-          )}
-        </div>
-
-        {/* Category progress */}
-        <div style={{...CARD}}>
-          <div style={{fontSize:"10px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"14px",fontFamily:"monospace"}}>Progress by Category</div>
-          <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
-            {catStats.map(x=>(
-              <div key={x.cat}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
-                  <span style={{fontSize:"11px",color:T.text}}>{x.icon} {x.label}</span>
-                  <span style={{fontFamily:"monospace",fontSize:"10px",color:x.done>0?"#34C759":T.textDim}}>{x.done}/{x.total} {x.saved>0?`· $${x.saved.toFixed(0)}/mo`:""}</span>
-                </div>
-                <div style={{height:"5px",background:T.statusBarBg,borderRadius:"3px",overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${x.total>0?(x.done/x.total)*100:0}%`,background:"#34C759",borderRadius:"3px",transition:"width .4s"}}/>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Completed actions */}
-      {completed.length>0&&(
-        <div style={{...CARD,marginBottom:"14px"}}>
-          <SecHeader icon="✅" title={`Completed Actions (${completed.length})`} T={T}/>
-          {completed.map((r,i)=>{
-            const aid=actionId(r.billId,r.cat,r.title);
-            return (
-              <div key={i} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 0",borderBottom:`1px solid ${T.border}`}}>
-                <button onClick={()=>onToggle(aid,r)} style={{flexShrink:0,width:"20px",height:"20px",borderRadius:"5px",border:"2px solid #34C759",background:"#34C759",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:"11px",fontWeight:"700"}}>✓</button>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:"12px",fontWeight:"600",color:"#34C759",marginBottom:"1px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</div>
-                  <div style={{fontSize:"10px",color:T.textDim}}>{CAT_ICONS[r.cat]} {CAT_LABELS[r.cat]} · {r.billPeriod}</div>
-                </div>
-                <div style={{fontFamily:"monospace",fontSize:"12px",fontWeight:"700",color:"#34C759",flexShrink:0}}>{r.estimatedSavings}</div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Pending actions */}
-      {pending.length>0&&(
-        <div style={{...CARD}}>
-          <SecHeader icon="⏳" title={`Pending Actions (${pending.length})`} T={T}/>
-          {pending.map((r,i)=>{
-            const aid=actionId(r.billId,r.cat,r.title);
-            return (
-              <div key={i} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 0",borderBottom:i<pending.length-1?`1px solid ${T.border}`:"none"}}>
-                <button onClick={()=>onToggle(aid,r)} style={{flexShrink:0,width:"20px",height:"20px",borderRadius:"5px",border:`2px solid rgba(52,199,89,0.35)`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"transparent",fontSize:"11px",transition:"all .15s"}}>✓</button>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:"12px",fontWeight:"600",color:T.text,marginBottom:"1px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</div>
-                  <div style={{fontSize:"10px",color:T.textDim}}>{CAT_ICONS[r.cat]} {CAT_LABELS[r.cat]} · {r.billPeriod}</div>
-                </div>
-                <div style={{display:"flex",gap:"8px",alignItems:"center",flexShrink:0}}>
-                  <DiffPill d={r.difficulty}/>
-                  <div style={{fontFamily:"monospace",fontSize:"11px",color:"#34C759",fontWeight:"700"}}>{r.estimatedSavings}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {allActions.length===0&&(
-        <div style={{textAlign:"center",padding:"60px 24px",color:T.textDim}}>
-          <div style={{fontSize:"40px",marginBottom:"12px",opacity:0.15}}>💰</div>
-          <div style={{fontSize:"14px",marginBottom:"6px"}}>No actions yet</div>
-          <div style={{fontSize:"12px",color:T.textFaint}}>Analyze a bill to generate recommendations you can track here</div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ─── BILL CHAT ─────────────────────────────────────────────────────────────────
-const QUICK_QS = ["How do I dispute the overcharge?","What exactly is the nuclear decommissioning fee?","How much would TOU-C actually save me?","Walk me through applying for CARE","Break-even on solar at my usage","What's causing my high usage?"];
-
-const BillChat = ({billResult, T}) => {
-  const [messages, setMessages] = useState([{role:"assistant",content:`Hi! I've analyzed your ${billResult.provider} bill for ${billResult.billingPeriod} — ${billResult.totalCharged} for ${billResult.totalUsage||billResult.totalKwh}. Ask me anything about the charges, how to act on a recommendation, or what's driving your costs.`}]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const bottomRef = useRef();
-
-  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages]);
-
-  const send = async(text) => {
-    const q=(text||input).trim(); if(!q||loading) return;
-    setInput("");
-    const newMsgs=[...messages,{role:"user",content:q}];
-    setMessages(newMsgs); setLoading(true);
-    try {
-      const res=await fetch("/api/chat",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:buildChatPrompt(billResult),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})
-      });
-      const data=await res.json();
-      if(data.error) throw new Error(data.error.message);
-      const reply=data.content?.find(b=>b.type==="text")?.text||"Sorry, no response.";
-      setMessages(p=>[...p,{role:"assistant",content:reply}]);
-    } catch(e) { setMessages(p=>[...p,{role:"assistant",content:"⚠ Error: "+(e.message||"Try again.")}]); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <div style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"12px",overflow:"hidden",marginTop:"14px"}}>
-      <div style={{padding:"11px 15px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:"8px",background:T.bgCard2}}>
-        <div style={{width:"7px",height:"7px",borderRadius:"50%",background:"#34C759",boxShadow:"0 0 5px #34C759"}}/>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:"10px",fontWeight:"700",letterSpacing:"0.12em",color:"#38BDF8",textTransform:"uppercase"}}>Bill Chat</span>
-        <span style={{fontSize:"11px",color:T.textDim}}>· Ask anything about this specific bill</span>
-      </div>
-      <div style={{padding:"8px 10px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:"5px",flexWrap:"wrap",background:T.chatBg}}>
-        {QUICK_QS.map(q=>(
-          <button key={q} onClick={()=>send(q)} disabled={loading} style={{background:T.bgCard,border:`1px solid ${T.border}`,color:T.textSub,padding:"3px 9px",borderRadius:"20px",fontSize:"11px",cursor:loading?"not-allowed":"pointer",fontFamily:"inherit",transition:"all .15s",opacity:loading?0.5:1}}>
-            {q}
-          </button>
-        ))}
-      </div>
-      <div style={{height:"280px",overflowY:"auto",padding:"12px 14px",display:"flex",flexDirection:"column",gap:"9px",background:T.chatBg}}>
-        {messages.map((m,i)=>(
-          <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",gap:"8px",alignItems:"flex-start"}}>
-            {m.role==="assistant"&&<div style={{width:"22px",height:"22px",borderRadius:"50%",background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px",flexShrink:0,marginTop:"2px"}}>⚡</div>}
-            <div style={{maxWidth:"78%",background:m.role==="user"?T.chatUserBubble:T.chatBotBubble,border:m.role==="user"?"1px solid rgba(56,189,248,0.2)":`1px solid ${T.chatBotBorder}`,borderRadius:m.role==="user"?"12px 12px 3px 12px":"12px 12px 12px 3px",padding:"8px 12px",fontSize:"13px",lineHeight:"1.6",color:T.text,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{m.content}</div>
-          </div>
-        ))}
-        {loading&&<div style={{display:"flex",alignItems:"center",gap:"8px"}}><div style={{width:"22px",height:"22px",borderRadius:"50%",background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px"}}>⚡</div><div style={{background:T.chatBotBubble,border:`1px solid ${T.chatBotBorder}`,borderRadius:"12px 12px 12px 3px",padding:"8px 13px",fontSize:"13px",color:T.textDim}}>●●●</div></div>}
-        <div ref={bottomRef}/>
-      </div>
-      <div style={{padding:"9px 10px",borderTop:`1px solid ${T.border}`,display:"flex",gap:"7px",background:T.chatBg}}>
-        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Ask about this bill..." disabled={loading} style={{flex:1,background:T.chatInputBg,border:`1px solid ${T.chatInputBorder}`,borderRadius:"7px",padding:"8px 12px",color:T.text,fontSize:"13px",fontFamily:"inherit",outline:"none",transition:"border-color .15s"}}/>
-        <button onClick={()=>send()} disabled={!input.trim()||loading} style={{background:input.trim()&&!loading?"linear-gradient(135deg,#38BDF8,#0EA5E9)":"rgba(56,189,248,0.1)",border:"none",borderRadius:"7px",padding:"8px 14px",cursor:input.trim()&&!loading?"pointer":"not-allowed",color:input.trim()&&!loading?"#050c14":"#38BDF8",fontSize:"14px",flexShrink:0,transition:"all .15s"}}>↑</button>
-      </div>
     </div>
   );
 };
@@ -1150,7 +920,7 @@ export default function App() {
 
   const loadDemo = ()=>{ setBills(DEMO_BILLS); setView("history"); };
   const deleteBill = (id)=>setBills(p=>p.filter(b=>b.id!==id));
-  const deleteSelected = ()=>{ setBills(p=>p.filter(b=>!deleteIds.has(b.id))); setDeleteIds(new Set()); setDeleteMode(false); };
+  const deleteSelected = ()=>{ if(!window.confirm(`Delete ${deleteIds.size} selected bill${deleteIds.size>1?'s':''}? This cannot be undone.`)) return; setBills(p=>p.filter(b=>!deleteIds.has(b.id))); setDeleteIds(new Set()); setDeleteMode(false); };
   const deleteAll = ()=>{ if(window.confirm("Delete all bills? This cannot be undone.")){setBills([]); setDeleteIds(new Set()); setDeleteMode(false); setCompareIds(new Set());} };
   const toggleDeleteMode = ()=>{ setDeleteMode(m=>!m); setDeleteIds(new Set()); };
   const openBill = (bill)=>{ setSelectedBill(bill); setActiveTab("negotiation"); setShowChat(false); setView("detail"); };
@@ -1188,7 +958,6 @@ export default function App() {
   const billRecs = selectedBill ? allRecs(selectedBill) : [];
   const billCompleted = billRecs.filter(rec=>completedActions.has(actionId(rec.billId,rec.cat,rec.title)));
   const billSaved = Math.min(billCompleted.reduce((s,rec)=>s+parseMonthlySavings(rec.estimatedSavings),0), parseNum(selectedBill?.result?.totalCharged));
-  const completedCount = completedActions.size;
   const totalTrackerSaved = bills.reduce((sum,bill)=>{
     const billTotal = parseNum(bill.result.totalCharged);
     const billDone = allRecs(bill).filter(rec=>completedActions.has(actionId(rec.billId,rec.cat,rec.title)));
@@ -1289,7 +1058,6 @@ export default function App() {
               <div style={{fontSize:"14px",color:T.textSub,lineHeight:"1.7",maxWidth:"420px",margin:"0 auto"}}>Upload a bill — or an entire year at once. AI verifies every charge, benchmarks costs regionally, and surfaces every dollar you can save.</div>
               <div style={{display:"flex",gap:"14px",justifyContent:"center",marginTop:"14px",flexWrap:"wrap"}}>
                 {bills.length>0&&<span style={{display:"inline-flex",alignItems:"center",gap:"8px"}}><span style={{fontSize:"11px",color:"#38BDF8",cursor:"pointer",textDecoration:"underline"}} onClick={()=>setView("history")}>📊 {bills.length} bill{bills.length>1?"s":""} in history →</span><span onClick={deleteAll} style={{fontSize:"10px",color:"#FF6B6B",cursor:"pointer",background:"rgba(255,59,48,0.1)",border:"1px solid rgba(255,59,48,0.25)",padding:"2px 8px",borderRadius:"4px",fontFamily:"monospace",fontWeight:"700",whiteSpace:"nowrap"}}>🗑 Clear All</span></span>}
-                {completedCount>0&&
               </div>
             </div>
 
@@ -1476,9 +1244,9 @@ export default function App() {
                 {bills.length>=2&&(
                   <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"14px",marginBottom:"18px"}}>
                     {[
-                      {title:"Monthly Cost ($)",height:165,el:<LineChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`} domain={[dataMin=>Math.floor(dataMin*0.9), dataMax=>Math.ceil(dataMax*1.05)]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Cost" stroke="#38BDF8" strokeWidth={2} dot={{fill:"#38BDF8",r:4,strokeWidth:0}} activeDot={{r:6}} name="Cost"/></LineChart>},
+                      {title:"Monthly Cost ($)",height:165,el:<LineChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9), dataMax=>dataMax===0?10:Math.ceil(dataMax*1.05)]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Cost" stroke="#38BDF8" strokeWidth={2} dot={{fill:"#38BDF8",r:4,strokeWidth:0}} activeDot={{r:6}} name="Cost"/></LineChart>},
                       {title:`Monthly Usage (${usageUnit})`,height:165,el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T}/>}/>{usageUnit==="kWh"&&<ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4"/>}<Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name={usageUnit}/></BarChart>},
-                      {title:`Rate per ${usageUnit} ($)`,height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v.toFixed(3)}`} domain={[dataMin=>Math.floor(dataMin*0.9*1000)/1000, dataMax=>Math.ceil(dataMax*1.05*1000)/1000]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
+                      {title:`Rate per ${usageUnit} ($)`,height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>v<0.01?`$${v.toFixed(4)}`:v<0.1?`$${v.toFixed(3)}`:`$${v.toFixed(2)}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9*10000)/10000, dataMax=>dataMax===0?1:Math.ceil(dataMax*1.05*10000)/10000]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
                     ].map(({title,height,el})=>(
                       <div key={title} style={{...CARD}}>
                         <div style={{fontSize:"9px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"12px",fontFamily:"monospace"}}>{title}</div>
