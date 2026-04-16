@@ -174,8 +174,8 @@ const BILL_TYPE_COLOR = {"ELECTRIC":"#38BDF8","GAS":"#FF9500","WATER":"#34C759",
 
 const shortPeriod = (p) => {
   if(!p||p==="N/A") return "Unknown";
-  // Named months: "Nov 23 – Dec 23, 2025"
-  const m = p.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[^–—-]*[–—-][^–—-]*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s*(\d{4})/i);
+  // Named months: "Nov 23 – Dec 23, 2025" or "Nov 23 - Dec 23, 2025"
+  const m = p.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[^–—\-]*[–—\-][^–—\-]*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s*(\d{4})/i);
   if(m) return `${m[1]}–${m[2]} '${m[3].slice(2)}`;
   // Numeric: "07/22/2025 - 08/21/2025" → "07/22–08/21 '25"
   const n = p.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})[^\d]*(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
@@ -639,8 +639,12 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) 
   // Extracts first date found in billingPeriod string for comparison
   const extractBillDate = (bill) => {
     const p = bill.result.billingPeriod || "";
-    const m = p.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/) || p.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s*(\d{4})/i);
-    if(m) return new Date(p.slice(0, 20));
+    // Numeric: "07/22/2025"
+    const num = p.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+    if(num) return new Date(`${num[2]}/${num[1]}/${num[3]}`);
+    // Named month: "Nov 23" or "November 23, 2025"
+    const named = p.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s*(\d{4})/i);
+    if(named) return new Date(`${named[1]} ${named[2]} ${named[3]}`);
     return new Date(bill.analyzedAt);
   };
   const [left, right] = extractBillDate(a) <= extractBillDate(b) ? [a,b] : [b,a];
@@ -1253,11 +1257,8 @@ export default function App() {
                       <div style={{padding:"12px 14px",borderTop:`1px solid ${T.border}`,background:"rgba(52,199,89,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"8px"}}>
                         <span style={{fontSize:"12px",color:"#34C759",fontWeight:"700"}}>✅ {bulkProgress.filter(x=>x.status==="done").length} bills analyzed successfully</span>
                         <div style={{display:"flex",gap:"8px"}}>
-                          <button onClick={()=>{
-                            const doneBills=bills.filter(b=>bulkProgress.some(p=>p.status==="done"&&p.name&&b.result));
-                            if(doneBills.length>0){dlPDF(doneBills[0].result);}
-                          }} style={{background:T.bgCard,border:`1px solid ${T.border}`,color:T.textSub,padding:"7px 12px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontWeight:"700",fontFamily:"monospace"}}>
-                            ↓ PDF (Latest)
+                          <button onClick={()=>setView("history")} style={{background:T.bgCard,border:`1px solid ${T.border}`,color:T.textSub,padding:"7px 12px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontWeight:"700",fontFamily:"monospace"}}>
+                            ↓ View Bills
                           </button>
                           <button onClick={()=>{setBulkFiles([]);setBulkProgress([]);setView("history");}} style={{background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",color:"#040d18",padding:"7px 14px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontWeight:"700",fontFamily:"monospace"}}>
                             View in History →
