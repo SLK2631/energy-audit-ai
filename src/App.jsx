@@ -980,9 +980,9 @@ export default function App() {
   };
 
   const loadDemo = ()=>{ setBills(DEMO_BILLS); setView("history"); };
-  const deleteBill = (id)=>setBills(p=>p.filter(b=>b.id!==id));
-  const deleteSelected = ()=>{ if(!window.confirm(`Delete ${deleteIds.size} selected bill${deleteIds.size>1?'s':''}? This cannot be undone.`)) return; setBills(p=>p.filter(b=>!deleteIds.has(b.id))); setDeleteIds(new Set()); setDeleteMode(false); };
-  const deleteAll = ()=>{ if(window.confirm("Delete all bills? This cannot be undone.")){setBills([]); setDeleteIds(new Set()); setDeleteMode(false); setCompareIds(new Set());} };
+  const deleteBill = (id)=>{ setBills(p=>p.filter(b=>b.id!==id)); if(selectedBill?.id===id){setSelectedBill(null);setView("history");} };
+  const deleteSelected = ()=>{ if(!window.confirm(`Delete ${deleteIds.size} selected bill${deleteIds.size>1?'s':''}? This cannot be undone.`)) return; if(selectedBill && deleteIds.has(selectedBill.id)){setSelectedBill(null);setView("history");} setBills(p=>p.filter(b=>!deleteIds.has(b.id))); setDeleteIds(new Set()); setDeleteMode(false); };
+  const deleteAll = ()=>{ if(window.confirm("Delete all bills? This cannot be undone.")){setBills([]); setDeleteIds(new Set()); setDeleteMode(false); setCompareIds(new Set()); setSelectedBill(null); setView("analyze");} };
   const toggleDeleteMode = ()=>{ setDeleteMode(m=>!m); setDeleteIds(new Set()); };
   const openBill = (bill)=>{ setSelectedBill(bill); setActiveTab("negotiation"); setShowChat(false); setView("detail"); };
   // HTML fallback (used if PDF fails)
@@ -999,6 +999,7 @@ export default function App() {
 
   const chartData=[...bills].sort((a,b)=>new Date(a.analyzedAt)-new Date(b.analyzedAt)).map(b=>({
     name:shortPeriod(b.result.billingPeriod),
+    billType:b.result.billType||"ELECTRIC",
     Cost:parseNum(b.result.totalCharged),
     kWh:parseNum(b.result.totalUsage||b.result.totalKwh),
     Rate:parseNum(b.result.ratePerUnit||b.result.ratePerKwh),
@@ -1298,7 +1299,7 @@ export default function App() {
                   <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"14px",marginBottom:"18px"}}>
                     {[
                       {title:"Monthly Cost ($)",height:165,el:<LineChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9), dataMax=>dataMax===0?10:Math.ceil(dataMax*1.05)]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Cost" stroke="#38BDF8" strokeWidth={2} dot={{fill:"#38BDF8",r:4,strokeWidth:0}} activeDot={{r:6}} name="Cost"/></LineChart>},
-                      {title:`Monthly Usage (${usageUnit})`,height:165,el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T}/>}/>{usageUnit==="kWh"&&<ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4"/>}<Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name={usageUnit}/></BarChart>},
+                      {title:`Monthly Usage (${usageUnit})`,height:165,el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T}/>}/>{usageUnit==="kWh"&&{chartData.some(d=>d.billType==="ELECTRIC"||!d.billType)&&<ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4" label={{value:"US avg",position:"insideTopRight",fill:T.textDim,fontSize:9}}/>}}<Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name={usageUnit}/></BarChart>},
                       {title:`Rate per ${usageUnit} ($)`,height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>v<0.01?`$${v.toFixed(4)}`:v<0.1?`$${v.toFixed(3)}`:`$${v.toFixed(2)}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9*10000)/10000, dataMax=>dataMax===0?1:Math.ceil(dataMax*1.05*10000)/10000]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
                     ].map(({title,height,el})=>(
                       <div key={title} style={{...CARD}}>
@@ -1346,7 +1347,7 @@ export default function App() {
                       )}
                     </div>
                   }/>
-                  {[...bills].sort((a,b)=>new Date(b.analyzedAt)-new Date(a.analyzedAt)).map(bill=>{
+                  {[...bills].filter(b=>b?.result).sort((a,b)=>new Date(b.analyzedAt)-new Date(a.analyzedAt)).map(bill=>{
                     const bRecs=allRecs(bill);
                     const bDone=bRecs.filter(rec=>completedActions.has(actionId(rec.billId,rec.cat,rec.title))).length;
                     const isCompareSelected = compareIds.has(bill.id);
