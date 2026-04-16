@@ -88,7 +88,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   },
   "totalPotentialMonthlySavings":"$XX-$XX/month","totalPotentialAnnualSavings":"$XXX-$XXXX/year",
   "priorityAction":"single most impactful action","analysisConfidence":"HIGH|MEDIUM|LOW","confidenceNote":"reason"
-}`;
+}` + sizeNote + commercialNote;
 };
 const SYSTEM_PROMPT = buildSystemPrompt(); // default — overridden per-analysis
 
@@ -1469,7 +1469,7 @@ export default function App() {
                 <div style={{marginTop:"11px",padding:"10px 12px",background:T.savingsBg,borderRadius:"7px",border:`1px solid ${T.savingsBorder}`}}>
                   <div style={{fontSize:"9px",color:"#38BDF8",marginBottom:"3px",letterSpacing:"0.1em",fontFamily:"monospace"}}>POTENTIAL SAVINGS</div>
                   <div style={{fontFamily:"'DM Mono',monospace",fontSize:"17px",fontWeight:"700",color:"#34C759"}}>{r.totalPotentialMonthlySavings}</div>
-                  <div style={{fontSize:"10px",color:T.textDim,marginTop:"2px"}}>{r.totalPotentialAnnualSavings}/yr</div>
+                  <div style={{fontSize:"10px",color:T.textDim,marginTop:"2px"}}>{r.totalPotentialAnnualSavings?.replace(/\/yr$|\/year$/,"")}/yr</div>
                   {parseNum(r.totalPotentialMonthlySavings?.split("–")[0])>parseNum(r.totalCharged)&&<div style={{fontSize:"9px",color:"#FF9500",marginTop:"4px"}}>⚠ Verify with utility — includes long-term investments</div>}
                 </div>
               </div>
