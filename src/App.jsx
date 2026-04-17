@@ -248,14 +248,14 @@ const RecCard = ({item, T, completed, onToggle, actionKey}) => (
   </div>
 );
 
-const ChartTip = ({active,payload,label,T}) => {
+const ChartTip = ({active,payload,label,T,usageUnit="kWh"}) => {
   if(!active||!payload?.length) return null;
   return (
     <div style={{background:T.chartTip,border:`1px solid ${T.chartTipBorder}`,borderRadius:"8px",padding:"10px 14px",fontFamily:"'DM Mono',monospace",fontSize:"11px",color:T.text,boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>
       <div style={{color:T.textDim,marginBottom:"5px",fontSize:"10px"}}>{label}</div>
       {payload.map((p,i)=>(
         <div key={i} style={{color:p.color,fontWeight:"600"}}>
-          {p.name}: {p.name==="Cost"?`$${p.value.toFixed(2)}`:p.name==="Rate"?`$${p.value.toFixed(3)}`:`${p.value}`}
+          {p.name}: {p.name==="Cost"?`$${p.value.toFixed(2)}`:p.name==="Rate"?`$${p.value.toFixed(3)}`:`${p.value} ${usageUnit}`}
         </div>
       ))}
     </div>
@@ -1299,8 +1299,8 @@ export default function App() {
                   <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"14px",marginBottom:"18px"}}>
                     {[
                       {title:"Monthly Cost ($)",height:165,el:<LineChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9), dataMax=>dataMax===0?10:Math.ceil(dataMax*1.05)]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Cost" stroke="#38BDF8" strokeWidth={2} dot={{fill:"#38BDF8",r:4,strokeWidth:0}} activeDot={{r:6}} name="Cost"/></LineChart>},
-                      {title:`Monthly Usage (${usageUnit})`,height:165,el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T}/>}/>{usageUnit==="kWh"&&{chartData.some(d=>d.billType==="ELECTRIC"||!d.billType)&&<ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4" label={{value:"US avg",position:"insideTopRight",fill:T.textDim,fontSize:9}}/>}}<Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name={usageUnit}/></BarChart>},
-                      {title:`Rate per ${usageUnit} ($)`,height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>v<0.01?`$${v.toFixed(4)}`:v<0.1?`$${v.toFixed(3)}`:`$${v.toFixed(2)}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9*10000)/10000, dataMax=>dataMax===0?1:Math.ceil(dataMax*1.05*10000)/10000]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
+                      {title:`Monthly Usage (${usageUnit})`,height:165,el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T} usageUnit={usageUnit}/>}/>{usageUnit==="kWh"&&{chartData.some(d=>d.billType==="ELECTRIC"||!d.billType)&&<ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4" label={{value:"US avg",position:"insideTopRight",fill:T.textDim,fontSize:9}}/>}}<Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name={usageUnit}/></BarChart>},
+                      {title:`Rate per ${usageUnit} ($)`,height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>v<0.01?`$${v.toFixed(4)}`:v<0.1?`$${v.toFixed(3)}`:`$${v.toFixed(2)}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9*10000)/10000, dataMax=>dataMax===0?1:Math.ceil(dataMax*1.05*10000)/10000]}/><Tooltip content={<ChartTip T={T} usageUnit={`/${usageUnit}`}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
                     ].map(({title,height,el})=>(
                       <div key={title} style={{...CARD}}>
                         <div style={{fontSize:"9px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"12px",fontFamily:"monospace"}}>{title}</div>
