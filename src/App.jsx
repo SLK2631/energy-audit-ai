@@ -263,7 +263,7 @@ const ChartTip = ({active,payload,label,T,usageUnit="kWh"}) => {
 };
 
 // ─── REPORT HTML ───────────────────────────────────────────────────────────────
-function buildReport(d, completedActions) {
+function buildReport(d, completedActions, billId) {
   const now=new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
   const sc=SC[d.billStatus]||"#FF9500";
   const cats=["negotiation","ratePlans","providers","equipment","behavioral","incentives"];
@@ -336,7 +336,7 @@ function buildReport(d, completedActions) {
     <div><div class="sv2l">Annual Savings Potential</div><div class="sv2v">${d.totalPotentialAnnualSavings}</div></div>
     <div><div class="sv2l">Usage Rating</div><div class="sv2v" style="font-size:18px;color:${{"LOW":"#059669","AVERAGE":"#0ea5e9","HIGH":"#d97706","VERY_HIGH":"#dc2626"}[d.usageRating]||"#047857"}">${d.usageRating.replace("_"," ")}<span style="font-family:'DM Sans',sans-serif;font-size:11px;color:#6b7280;font-weight:400;margin-left:8px">${d.usageRatingExplanation}</span></div></div>
   </div>
-  <div class="st">Recommendations</div><table><thead><tr><th style="text-align:center;width:44px">Done</th><th>Category</th><th>Action</th><th>Est. Savings</th><th>Difficulty</th></tr></thead><tbody>${recs.map(r=>{const done=completedActions&&[...completedActions].some(k=>k.endsWith("::"+r.title));return`<tr class="${done?'done':''}" style="text-align:center"><td style="text-align:center">${done?'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:#059669;color:#fff;font-size:11px;font-weight:700">&#10003;</span>':'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;border:2px solid #d1d5db;background:#fff"></span>'}</td><td>${{negotiation:"Negotiation",ratePlans:"Rate Plans",providers:"Providers",equipment:"Equipment",behavioral:"Habits",incentives:"Rebates"}[r.cat]||r.cat}</td><td style="font-weight:600">${r.title}</td><td style="color:#059669;font-weight:700;font-family:monospace">${r.estimatedSavings}</td><td><span style="background:${r.difficulty==='Easy'?'#d1fae5':r.difficulty==='Medium'?'#fef3c7':'#fee2e2'};color:${r.difficulty==='Easy'?'#065f46':r.difficulty==='Medium'?'#92400e':'#991b1b'};padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px">${r.difficulty}</span></td></tr>`;}).join("")}</tbody></table>
+  <div class="st">Recommendations</div><table><thead><tr><th style="text-align:center;width:44px">Done</th><th>Category</th><th>Action</th><th>Est. Savings</th><th>Difficulty</th></tr></thead><tbody>${recs.map(r=>{const done=completedActions&&[...completedActions].some(k=>billId?k.startsWith(billId+"::")&&k.endsWith("::"+r.title):k.endsWith("::"+r.title));return`<tr class="${done?'done':''}" style="text-align:center"><td style="text-align:center">${done?'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:#059669;color:#fff;font-size:11px;font-weight:700">&#10003;</span>':'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;border:2px solid #d1d5db;background:#fff"></span>'}</td><td>${{negotiation:"Negotiation",ratePlans:"Rate Plans",providers:"Providers",equipment:"Equipment",behavioral:"Habits",incentives:"Rebates"}[r.cat]||r.cat}</td><td style="font-weight:600">${r.title}</td><td style="color:#059669;font-weight:700;font-family:monospace">${r.estimatedSavings}</td><td><span style="background:${r.difficulty==='Easy'?'#d1fae5':r.difficulty==='Medium'?'#fef3c7':'#fee2e2'};color:${r.difficulty==='Easy'?'#065f46':r.difficulty==='Medium'?'#92400e':'#991b1b'};padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px">${r.difficulty}</span></td></tr>`;}).join("")}</tbody></table>
 <div class="sec meth">
   <div class="st">Sources &amp; Methodology</div>
   <p style="font-size:12px;color:#4b5563;line-height:1.7;margin-bottom:4px">This analysis cross-references your bill against publicly available utility tariff schedules, federal energy databases, and industry benchmarks. All findings are verifiable through the primary sources listed below.</p>
@@ -904,7 +904,7 @@ export default function App() {
       setBulkProgress([...progress]);
       try {
         const parsed = await analyzeSingleFile(bulkFiles[i]);
-        const nb = {id:`bill-${Date.now()}-${i}`, analyzedAt:new Date().toISOString(), result:parsed, context:{accountType,householdSize,facilitySize}};
+        const nb = {id:`bill-${Date.now()}-${i}`, analyzedAt:new Date().toISOString(), result:{...parsed, billType:parsed.billType?parsed.billType.toUpperCase():parsed.billType}, context:{accountType,householdSize,facilitySize}};
         newBills.push(nb);
         progress[i] = {...progress[i], status:"done", result:parsed};
       } catch(e) {
@@ -931,6 +931,7 @@ export default function App() {
     if(!imageDataUrl) return; setAnalyzing(true); setError(null);
     try {
       const parsed = await analyzeSingleFile(file);
+      if(parsed.billType) parsed.billType=parsed.billType.toUpperCase();
       const nb={id:`bill-${Date.now()}`,analyzedAt:new Date().toISOString(),result:parsed,context:{accountType,householdSize,facilitySize}};
       setBills(p=>[...p,nb]); setSelectedBill(nb); setActiveTab("negotiation");
       setShowChat(false); setView("detail"); setFile(null); setImageDataUrl(null);
@@ -986,11 +987,10 @@ export default function App() {
   const toggleDeleteMode = ()=>{ setDeleteMode(m=>!m); setDeleteIds(new Set()); };
   const openBill = (bill)=>{ setSelectedBill(bill); setActiveTab("negotiation"); setShowChat(false); setView("detail"); };
   // HTML fallback (used if PDF fails)
-  const dl = (r)=>{ const html=buildReport(r,completedActions); const blob=new Blob([html],{type:"text/html"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=`energy-audit-${Date.now()}.html`; a.click(); URL.revokeObjectURL(url); };
 
-  const dlPDF = (reportData) => {
+  const dlPDF = (reportData, billId) => {
     setPdfGenerating(true);
-    const html = buildReport(reportData, completedActions);
+    const html = buildReport(reportData, completedActions, billId);
     openReport(html, "energy-audit-" + reportData.provider.replace(/[^a-z0-9]/gi,"-").toLowerCase() + ".html");
     setPdfGenerating(false);
     setPdfToast(true);
@@ -1431,7 +1431,7 @@ export default function App() {
                 <button onClick={()=>setShowChat(s=>!s)} style={{background:showChat?"linear-gradient(135deg,#38BDF8,#0EA5E9)":T.bgCard,border:`1px solid ${showChat?"transparent":T.border}`,color:showChat?"#040d18":T.textSub,padding:"7px 14px",borderRadius:"7px",cursor:"pointer",fontSize:"11px",fontWeight:"600",fontFamily:"monospace"}}>
                   💬 {showChat?"Close Chat":"Ask AI"}
                 </button>
-                <button onClick={()=>dlPDF(r)} disabled={pdfGenerating} style={{background:pdfGenerating?"rgba(56,189,248,0.15)":"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:`1px solid ${pdfGenerating?"rgba(56,189,248,0.3)":"transparent"}`,color:pdfGenerating?"#38BDF8":"#040d18",padding:"7px 14px",borderRadius:"7px",cursor:pdfGenerating?"not-allowed":"pointer",fontSize:"11px",fontWeight:"700",fontFamily:"monospace",boxShadow:pdfGenerating?"none":"0 2px 8px rgba(56,189,248,.2)",minWidth:"100px",transition:"all .2s"}}>
+                <button onClick={()=>dlPDF(r,selectedBill?.id)} disabled={pdfGenerating} style={{background:pdfGenerating?"rgba(56,189,248,0.15)":"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:`1px solid ${pdfGenerating?"rgba(56,189,248,0.3)":"transparent"}`,color:pdfGenerating?"#38BDF8":"#040d18",padding:"7px 14px",borderRadius:"7px",cursor:pdfGenerating?"not-allowed":"pointer",fontSize:"11px",fontWeight:"700",fontFamily:"monospace",boxShadow:pdfGenerating?"none":"0 2px 8px rgba(56,189,248,.2)",minWidth:"100px",transition:"all .2s"}}>
                   {pdfGenerating ? <span className="pulse">⚡ Building…</span> : "↓ PDF Report"}
                 </button>
               </div>
