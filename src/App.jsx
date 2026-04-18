@@ -41,6 +41,17 @@ WATER: ALWAYS use the household size provided in CUSTOMER CONTEXT to determine t
 STEP 4 — REGIONAL COMPARISON
 Compare total bill to regional averages for similar facility type and climate zone.
 
+CRITICAL — FIXED CHARGE DISCONNECT DETECTION:
+Calculate the implied energy cost: totalUsage × ratePerUnit = energy_charges.
+If energy_charges is significantly less than totalCharged, the difference is fixed charges (customer charges, grid access fees, fuel adjustments, taxes, etc.).
+If the bill is ABOVE regional average but usage is LOW or AVERAGE, this is a fixed-charge problem, not a usage problem.
+In this case:
+- comparisonNote MUST explain this explicitly: "Your usage is low/efficient, but fixed monthly charges (customer charge, grid fees, fuel adjustments) make up a large portion of your bill, pushing it above average despite good conservation habits."
+- The priorityAction should target fixed charges: challenge the customer charge, investigate low-income rate programs, or consider whether the rate structure penalizes low-usage customers.
+- Flag in potentialErrors if fixed charges exceed 40% of the total bill for a residential customer.
+- Do NOT suggest the customer reduce usage further if their usage is already LOW — that won't help them.
+- NEVER say a bill is above average without explaining WHY (fixed charges vs actual consumption).
+
 STEP 5 — RECOMMENDATIONS (specific, not generic)
 
 ELECTRIC BILLS:
