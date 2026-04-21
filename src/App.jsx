@@ -274,6 +274,7 @@ const ChartTip = ({active,payload,label,T,usageUnit="kWh"}) => {
 };
 
 // ─── REPORT HTML ───────────────────────────────────────────────────────────────
+function escHtml(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function buildReport(d, completedActions, billId) {
   const now=new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
   const sc=SC[d.billStatus]||"#FF9500";
@@ -336,16 +337,16 @@ function buildReport(d, completedActions, billId) {
       <div class="lbl" style="margin-bottom:4px">EnergyAudit AI</div>
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:#6b87a4;letter-spacing:0.08em">${({"ELECTRIC":"⚡ Electric Bill","GAS":"🔥 Gas Bill","WATER":"💧 Water Bill","COMBINED":"🏭 Combined Utility Bill"})[d.billType]||"⚡ Utility Bill"} Analysis</div>
     </div>
-  </div><div class="ttl">Energy Bill Analysis</div><div class="sub">AI-Powered Billing Verification &amp; Cost Reduction Report</div><div class="meta"><div class="ml"><label>Provider</label><span>${d.provider}</span></div><div class="ml"><label>Period</label><span>${d.billingPeriod}</span></div><div class="ml"><label>Generated</label><span>${now}</span></div><div class="ml"><label>Status</label><br><span class="bdg" style="background:${sc}">${d.billStatus.replace("_"," ")}</span></div></div></div>
+  </div><div class="ttl">Energy Bill Analysis</div><div class="sub">AI-Powered Billing Verification &amp; Cost Reduction Report</div><div class="meta"><div class="ml"><label>Provider</label><span>${escHtml(d.provider)}</span></div><div class="ml"><label>Period</label><span>${escHtml(d.billingPeriod)}</span></div><div class="ml"><label>Generated</label><span>${now}</span></div><div class="ml"><label>Status</label><br><span class="bdg" style="background:${sc}">${d.billStatus.replace("_"," ")}</span></div></div></div>
   <div class="body">
-  <div class="pri"><div class="pl">★ Priority Action</div><div class="pt">${d.priorityAction}</div></div>
-  <div class="sec"><div class="st">Bill Summary</div><div class="g3"><div class="stat"><div class="sl">Total Charged</div><div class="sv">${d.totalCharged}</div></div><div class="stat"><div class="sl">Usage</div><div class="sv">${d.totalUsage||d.totalKwh}</div></div><div class="stat"><div class="sl">Rate/Unit</div><div class="sv">${d.ratePerUnit||d.ratePerKwh}</div></div></div></div>
+  <div class="pri"><div class="pl">★ Priority Action</div><div class="pt">${escHtml(d.priorityAction)}</div></div>
+  <div class="sec"><div class="st">Bill Summary</div><div class="g3"><div class="stat"><div class="sl">Total Charged</div><div class="sv">${escHtml(d.totalCharged)}</div></div><div class="stat"><div class="sl">Usage</div><div class="sv">${escHtml(d.totalUsage||d.totalKwh)}</div></div><div class="stat"><div class="sl">Rate/Unit</div><div class="sv">${escHtml(d.ratePerUnit||d.ratePerKwh)}</div></div></div></div>
   <div class="sec"><div class="st">Regional Comparison</div><div class="g3"><div class="stat"><div class="sl">Your Bill</div><div class="sv">${d.regionalComparison?.yourBill||'N/A'}</div></div><div class="stat"><div class="sl">Regional Avg</div><div class="sv" style="color:#059669">${d.regionalComparison?.regionalAverage||'N/A'}</div></div><div class="stat"><div class="sl">Difference</div><div class="sv" style="color:${(d.regionalComparison?.percentageDifference||'+0%').startsWith('+')?'#dc2626':'#059669'}">${d.regionalComparison?.percentageDifference||'N/A'}</div></div></div></div>
   <div class="sec">
   <div class="sv2" style="margin-bottom:18px">
-    <div><div class="sv2l">Monthly Savings Potential</div><div class="sv2v">${d.totalPotentialMonthlySavings}</div></div>
-    <div><div class="sv2l">Annual Savings Potential</div><div class="sv2v">${d.totalPotentialAnnualSavings}</div></div>
-    <div><div class="sv2l">Usage Rating</div><div class="sv2v" style="font-size:18px;color:${{"LOW":"#059669","AVERAGE":"#0ea5e9","HIGH":"#d97706","VERY_HIGH":"#dc2626"}[d.usageRating]||"#047857"}">${d.usageRating.replace("_"," ")}<span style="font-family:'DM Sans',sans-serif;font-size:11px;color:#6b7280;font-weight:400;margin-left:8px">${d.usageRatingExplanation}</span></div></div>
+    <div><div class="sv2l">Monthly Savings Potential</div><div class="sv2v">${escHtml(d.totalPotentialMonthlySavings)}</div></div>
+    <div><div class="sv2l">Annual Savings Potential</div><div class="sv2v">${escHtml(d.totalPotentialAnnualSavings)}</div></div>
+    <div><div class="sv2l">Usage Rating</div><div class="sv2v" style="font-size:18px;color:${{"LOW":"#059669","AVERAGE":"#0ea5e9","HIGH":"#d97706","VERY_HIGH":"#dc2626"}[d.usageRating]||"#047857"}">${d.usageRating.replace("_"," ")}<span style="font-family:'DM Sans',sans-serif;font-size:11px;color:#6b7280;font-weight:400;margin-left:8px">${escHtml(d.usageRatingExplanation)}</span></div></div>
   </div>
   <div class="st">Recommendations</div><table><thead><tr><th style="text-align:center;width:44px">Done</th><th>Category</th><th>Action</th><th>Est. Savings</th><th>Difficulty</th></tr></thead><tbody>${recs.map(r=>{const done=completedActions&&[...completedActions].some(k=>billId?k.startsWith(billId+"::")&&k.endsWith("::"+r.title):k.endsWith("::"+r.title));return`<tr class="${done?'done':''}" style="text-align:center"><td style="text-align:center">${done?'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:#059669;color:#fff;font-size:11px;font-weight:700">&#10003;</span>':'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;border:2px solid #d1d5db;background:#fff"></span>'}</td><td>${{negotiation:"Negotiation",ratePlans:"Rate Plans",providers:"Providers",equipment:"Equipment",behavioral:"Habits",incentives:"Rebates"}[r.cat]||r.cat}</td><td style="font-weight:600">${r.title}</td><td style="color:#059669;font-weight:700;font-family:monospace">${r.estimatedSavings}</td><td><span style="background:${r.difficulty==='Easy'?'#d1fae5':r.difficulty==='Medium'?'#fef3c7':'#fee2e2'};color:${r.difficulty==='Easy'?'#065f46':r.difficulty==='Medium'?'#92400e':'#991b1b'};padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px">${r.difficulty}</span></td></tr>`;}).join("")}</tbody></table>
 <div class="sec meth">
@@ -829,6 +830,15 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) 
 };
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
+const TABS=[
+  {key:"negotiation",label:"Negotiate",icon:"💬"},
+  {key:"ratePlans",label:"Rate Plans",icon:"📊"},
+  {key:"providers",label:"Providers",icon:"🔄"},
+  {key:"equipment",label:"Equipment",icon:"⚙️"},
+  {key:"behavioral",label:"Habits",icon:"🧠"},
+  {key:"incentives",label:"Rebates",icon:"💰"},
+];
+
 export default function App() {
   const isMobile = useIsMobile();
   const [darkMode, setDarkMode] = useState(true);
@@ -865,9 +875,9 @@ export default function App() {
   // Load from storage
   useEffect(()=>{
     (async()=>{
-      try{const r=await Promise.resolve({value: localStorage.getItem("ea-bills")});if(r?.value)setBills(JSON.parse(r.value));}catch(_){}
-      try{const r=await Promise.resolve({value: localStorage.getItem("ea-dark")});if(r?.value!==undefined)setDarkMode(JSON.parse(r.value));}catch(_){}
-      try{const r=await Promise.resolve({value: localStorage.getItem("ea-completed")});if(r?.value)setCompletedActions(new Set(JSON.parse(r.value)));}catch(_){}
+      try{const v=localStorage.getItem("ea-bills");if(v)setBills(JSON.parse(v));}catch(_){}
+      try{const v=localStorage.getItem("ea-dark");if(v!==null)setDarkMode(JSON.parse(v));}catch(_){}
+      try{const v=localStorage.getItem("ea-completed");if(v)setCompletedActions(new Set(JSON.parse(v)));}catch(_){}
       setStorageReady(true);
     })();
   },[]);
@@ -1020,14 +1030,7 @@ export default function App() {
   const billTypesApp=new Set(validBills.map(b=>b.result.billType).filter(Boolean));
   const usageUnit=billTypesApp.size===1?({ELECTRIC:"kWh",GAS:"therms",WATER:"gallons",COMBINED:"units"}[[...billTypesApp][0]]||"units"):"units";
 
-  const TABS=[
-    {key:"negotiation",label:"Negotiate",icon:"💬"},
-    {key:"ratePlans",label:"Rate Plans",icon:"📊"},
-    {key:"providers",label:"Providers",icon:"🔄"},
-    {key:"equipment",label:"Equipment",icon:"⚙️"},
-    {key:"behavioral",label:"Habits",icon:"🧠"},
-    {key:"incentives",label:"Rebates",icon:"💰"},
-  ];
+
   const r = selectedBill?.result;
 
   // Savings banner for detail view
