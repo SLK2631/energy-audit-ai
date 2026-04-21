@@ -1008,7 +1008,8 @@ export default function App() {
     setTimeout(() => setPdfToast(false), 7000);
   };
 
-  const chartData=[...bills].sort((a,b)=>new Date(a.analyzedAt)-new Date(b.analyzedAt)).map(b=>({
+  const validBills=bills.filter(b=>b?.result);
+  const chartData=[...validBills].sort((a,b)=>new Date(a.analyzedAt)-new Date(b.analyzedAt)).map(b=>({
     name:shortPeriod(b.result.billingPeriod),
     billType:b.result.billType||"ELECTRIC",
     Cost:parseNum(b.result.totalCharged),
@@ -1016,6 +1017,8 @@ export default function App() {
     Rate:parseNum(b.result.ratePerUnit||b.result.ratePerKwh),
     status:b.result.billStatus,
   }));
+  const billTypesApp=new Set(validBills.map(b=>b.result.billType).filter(Boolean));
+  const usageUnit=billTypesApp.size===1?({ELECTRIC:"kWh",GAS:"therms",WATER:"gallons",COMBINED:"units"}[[...billTypesApp][0]]||"units"):"units";
 
   const TABS=[
     {key:"negotiation",label:"Negotiate",icon:"💬"},
@@ -1305,7 +1308,7 @@ export default function App() {
               </div>
             ):(
               <>
-                <TrendKPIs bills={bills} completedActions={completedActions} T={T}/>
+                <TrendKPIs bills={validBills} completedActions={completedActions} T={T}/>
                 {bills.length>=2&&(
                   <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"14px",marginBottom:"18px"}}>
                     {[
