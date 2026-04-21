@@ -337,16 +337,16 @@ function buildReport(d, completedActions, billId) {
       <div class="lbl" style="margin-bottom:4px">EnergyAudit AI</div>
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:#6b87a4;letter-spacing:0.08em">${({"ELECTRIC":"⚡ Electric Bill","GAS":"🔥 Gas Bill","WATER":"💧 Water Bill","COMBINED":"🏭 Combined Utility Bill"})[d.billType]||"⚡ Utility Bill"} Analysis</div>
     </div>
-  </div><div class="ttl">Energy Bill Analysis</div><div class="sub">AI-Powered Billing Verification &amp; Cost Reduction Report</div><div class="meta"><div class="ml"><label>Provider</label><span>${escHtml(d.provider)}</span></div><div class="ml"><label>Period</label><span>${escHtml(d.billingPeriod)}</span></div><div class="ml"><label>Generated</label><span>${now}</span></div><div class="ml"><label>Status</label><br><span class="bdg" style="background:${sc}">${d.billStatus.replace("_"," ")}</span></div></div></div>
+  </div><div class="ttl">Energy Bill Analysis</div><div class="sub">AI-Powered Billing Verification &amp; Cost Reduction Report</div><div class="meta"><div class="ml"><label>Provider</label><span>${escHtml(d.provider)}</span></div><div class="ml"><label>Period</label><span>${escHtml(d.billingPeriod)}</span></div><div class="ml"><label>Generated</label><span>${now}</span></div><div class="ml"><label>Status</label><br><span class="bdg" style="background:${sc}">${escHtml(d.billStatus).replace('_',' ')}</span></div></div></div>
   <div class="body">
   <div class="pri"><div class="pl">★ Priority Action</div><div class="pt">${escHtml(d.priorityAction)}</div></div>
   <div class="sec"><div class="st">Bill Summary</div><div class="g3"><div class="stat"><div class="sl">Total Charged</div><div class="sv">${escHtml(d.totalCharged)}</div></div><div class="stat"><div class="sl">Usage</div><div class="sv">${escHtml(d.totalUsage||d.totalKwh)}</div></div><div class="stat"><div class="sl">Rate/Unit</div><div class="sv">${escHtml(d.ratePerUnit||d.ratePerKwh)}</div></div></div></div>
-  <div class="sec"><div class="st">Regional Comparison</div><div class="g3"><div class="stat"><div class="sl">Your Bill</div><div class="sv">${d.regionalComparison?.yourBill||'N/A'}</div></div><div class="stat"><div class="sl">Regional Avg</div><div class="sv" style="color:#059669">${d.regionalComparison?.regionalAverage||'N/A'}</div></div><div class="stat"><div class="sl">Difference</div><div class="sv" style="color:${(d.regionalComparison?.percentageDifference||'+0%').startsWith('+')?'#dc2626':'#059669'}">${d.regionalComparison?.percentageDifference||'N/A'}</div></div></div></div>
+  <div class="sec"><div class="st">Regional Comparison</div><div class="g3"><div class="stat"><div class="sl">Your Bill</div><div class="sv">${escHtml(d.regionalComparison?.yourBill||'N/A')}</div></div><div class="stat"><div class="sl">Regional Avg</div><div class="sv" style="color:#059669">${escHtml(d.regionalComparison?.regionalAverage||'N/A')}</div></div><div class="stat"><div class="sl">Difference</div><div class="sv" style="color:${(d.regionalComparison?.percentageDifference||'+0%').startsWith('+')?'#dc2626':'#059669'}">${d.regionalComparison?.percentageDifference||'N/A'}</div></div></div></div>
   <div class="sec">
   <div class="sv2" style="margin-bottom:18px">
     <div><div class="sv2l">Monthly Savings Potential</div><div class="sv2v">${escHtml(d.totalPotentialMonthlySavings)}</div></div>
     <div><div class="sv2l">Annual Savings Potential</div><div class="sv2v">${escHtml(d.totalPotentialAnnualSavings)}</div></div>
-    <div><div class="sv2l">Usage Rating</div><div class="sv2v" style="font-size:18px;color:${{"LOW":"#059669","AVERAGE":"#0ea5e9","HIGH":"#d97706","VERY_HIGH":"#dc2626"}[d.usageRating]||"#047857"}">${d.usageRating.replace("_"," ")}<span style="font-family:'DM Sans',sans-serif;font-size:11px;color:#6b7280;font-weight:400;margin-left:8px">${escHtml(d.usageRatingExplanation)}</span></div></div>
+    <div><div class="sv2l">Usage Rating</div><div class="sv2v" style="font-size:18px;color:${{"LOW":"#059669","AVERAGE":"#0ea5e9","HIGH":"#d97706","VERY_HIGH":"#dc2626"}[d.usageRating]||"#047857"}">${escHtml(d.usageRating).replace('_',' ')}<span style="font-family:'DM Sans',sans-serif;font-size:11px;color:#6b7280;font-weight:400;margin-left:8px">${escHtml(d.usageRatingExplanation)}</span></div></div>
   </div>
   <div class="st">Recommendations</div><table><thead><tr><th style="text-align:center;width:44px">Done</th><th>Category</th><th>Action</th><th>Est. Savings</th><th>Difficulty</th></tr></thead><tbody>${recs.map(r=>{const done=completedActions&&[...completedActions].some(k=>billId?k.startsWith(billId+"::")&&k.endsWith("::"+r.title):k.endsWith("::"+r.title));return`<tr class="${done?'done':''}" style="text-align:center"><td style="text-align:center">${done?'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:#059669;color:#fff;font-size:11px;font-weight:700">&#10003;</span>':'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;border:2px solid #d1d5db;background:#fff"></span>'}</td><td>${{negotiation:"Negotiation",ratePlans:"Rate Plans",providers:"Providers",equipment:"Equipment",behavioral:"Habits",incentives:"Rebates"}[r.cat]||r.cat}</td><td style="font-weight:600">${r.title}</td><td style="color:#059669;font-weight:700;font-family:monospace">${r.estimatedSavings}</td><td><span style="background:${r.difficulty==='Easy'?'#d1fae5':r.difficulty==='Medium'?'#fef3c7':'#fee2e2'};color:${r.difficulty==='Easy'?'#065f46':r.difficulty==='Medium'?'#92400e':'#991b1b'};padding:2px 8px;border-radius:4px;font-weight:600;font-size:10px">${r.difficulty}</span></td></tr>`;}).join("")}</tbody></table>
 <div class="sec meth">
@@ -495,11 +495,11 @@ function buildCompareReport(left, right, completedActions) {
       <div><div class="lbl">EnergyAudit AI</div><div style="font-family:'DM Mono',monospace;font-size:11px;color:#6b87a4;letter-spacing:0.08em">⚖ Bill Comparison Report</div></div>
     </div>
     <div class="ttl">Bill Comparison</div>
-    <div class="sub">${rl.billingPeriod} vs ${rr.billingPeriod}</div>
+    <div class="sub">${escHtml(rl.billingPeriod)} vs ${escHtml(rr.billingPeriod)}</div>
     <div class="meta">
       <div class="ml"><label>Generated</label><span>${now}</span></div>
-      <div class="ml"><label>Provider A</label><span>${rl.provider}</span></div>
-      <div class="ml"><label>Provider B</label><span>${rr.provider}</span></div>
+      <div class="ml"><label>Provider A</label><span>${escHtml(rl.provider)}</span></div>
+      <div class="ml"><label>Provider B</label><span>${escHtml(rr.provider)}</span></div>
     </div>
   </div>
   <div class="body">
@@ -508,15 +508,15 @@ function buildCompareReport(left, right, completedActions) {
       <div class="bills-grid">
         <div class="bill-card-a">
           <div class="bill-label" style="color:#0ea5e9">Bill A · Earlier</div>
-          <div class="bill-provider">${rl.provider}</div>
-          <div class="bill-period">${rl.billingPeriod}</div>
+          <div class="bill-provider">${escHtml(rl.provider)}</div>
+          <div class="bill-period">${escHtml(rl.billingPeriod)}</div>
           <span class="bdg" style="background:${sc[rl.billStatus]||'#FF9500'}">${rl.billStatus.replace("_"," ")}</span>
         </div>
         <div class="vs-divider">vs</div>
         <div class="bill-card-b">
           <div class="bill-label" style="color:#059669">Bill B · Later</div>
-          <div class="bill-provider">${rr.provider}</div>
-          <div class="bill-period">${rr.billingPeriod}</div>
+          <div class="bill-provider">${escHtml(rr.provider)}</div>
+          <div class="bill-period">${escHtml(rr.billingPeriod)}</div>
           <span class="bdg" style="background:${sc[rr.billStatus]||'#FF9500'}">${rr.billStatus.replace("_"," ")}</span>
         </div>
       </div>
@@ -1011,11 +1011,13 @@ export default function App() {
 
   const dlPDF = (reportData, billId) => {
     setPdfGenerating(true);
-    const html = buildReport(reportData, completedActions, billId);
-    openReport(html, "energy-audit-" + reportData.provider.replace(/[^a-z0-9]/gi,"-").toLowerCase() + ".html");
-    setPdfGenerating(false);
-    setPdfToast(true);
-    setTimeout(() => setPdfToast(false), 7000);
+    try {
+      const html = buildReport(reportData, completedActions, billId);
+      openReport(html, "energy-audit-" + reportData.provider.replace(/[^a-z0-9]/gi,"-").toLowerCase() + ".html");
+      setPdfToast(true);
+      setTimeout(() => setPdfToast(false), 7000);
+    } catch(e) { console.error("PDF generation failed:", e); }
+    finally { setPdfGenerating(false); }
   };
 
   const validBills=bills.filter(b=>b?.result);
@@ -1316,9 +1318,9 @@ export default function App() {
                   <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"14px",marginBottom:"18px"}}>
                     {[
                       {title:"Monthly Cost ($)",height:165,el:<LineChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9), dataMax=>dataMax===0?10:Math.ceil(dataMax*1.05)]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Cost" stroke="#38BDF8" strokeWidth={2} dot={{fill:"#38BDF8",r:4,strokeWidth:0}} activeDot={{r:6}} name="Cost"/></LineChart>},
-                      {title:`Monthly Usage (${usageUnit})`,height:165,el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T} usageUnit={usageUnit}/>}/>{usageUnit==="kWh"&&{chartData.some(d=>d.billType==="ELECTRIC"||!d.billType)&&<ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4" label={{value:"US avg",position:"insideTopRight",fill:T.textDim,fontSize:9}}/>}}<Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name={usageUnit}/></BarChart>},
+                      {title:`Monthly Usage (${usageUnit})`,height:165,hidden:usageUnit==="units",el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T} usageUnit={usageUnit}/>}/>{usageUnit==="kWh"&&{chartData.some(d=>d.billType==="ELECTRIC"||!d.billType)&&<ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4" label={{value:"US avg",position:"insideTopRight",fill:T.textDim,fontSize:9}}/>}}<Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name={usageUnit}/></BarChart>},
                       {title:`Rate per ${usageUnit} ($)`,height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>v<0.01?`$${v.toFixed(4)}`:v<0.1?`$${v.toFixed(3)}`:`$${v.toFixed(2)}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9*10000)/10000, dataMax=>dataMax===0?1:Math.ceil(dataMax*1.05*10000)/10000]}/><Tooltip content={<ChartTip T={T} usageUnit={`/${usageUnit}`}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
-                    ].map(({title,height,el})=>(
+                    ].filter(({hidden})=>!hidden).map(({title,height,el})=>(
                       <div key={title} style={{...CARD}}>
                         <div style={{fontSize:"9px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"12px",fontFamily:"monospace"}}>{title}</div>
                         <ResponsiveContainer width="100%" height={height}>{el}</ResponsiveContainer>
@@ -1456,7 +1458,7 @@ export default function App() {
 
             {/* Stats */}
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:"9px",marginBottom:"12px"}}>
-              {[{label:"Total Charged",v:r.totalCharged,c:T.text},{label:"Usage",v:r.totalUsage||r.totalKwh,c:BILL_TYPE_COLOR[r.billType]||"#38BDF8"},{label:"Rate/Unit",v:r.ratePerUnit||r.ratePerKwh,c:"#FF9500"},{label:"vs. Regional Avg",v:r.regionalComparison.percentageDifference,c:r.regionalComparison.percentageDifference?.startsWith("+")?"#FF3B30":"#34C759"}].map(s=>(
+              {[{label:"Total Charged",v:typeof r.totalCharged==="number"?`$${r.totalCharged.toFixed(2)}`:r.totalCharged,c:T.text},{label:"Usage",v:r.totalUsage||r.totalKwh,c:BILL_TYPE_COLOR[r.billType]||"#38BDF8"},{label:"Rate/Unit",v:r.ratePerUnit||r.ratePerKwh,c:"#FF9500"},{label:"vs. Regional Avg",v:r.regionalComparison.percentageDifference,c:r.regionalComparison.percentageDifference?.startsWith("+")?"#FF3B30":"#34C759"}].map(s=>(
                 <div key={s.label} style={{...CARD}}>
                   <div style={{fontSize:"9px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:"5px"}}>{s.label}</div>
                   <div style={{fontFamily:"'DM Mono',monospace",fontSize:"18px",fontWeight:"700",color:s.c}}>{s.v}</div>
@@ -1470,8 +1472,8 @@ export default function App() {
                 <SecHeader icon="🔍" title="Bill Verification" T={T}/>
                 <div style={{marginBottom:"9px"}}><StatusBadge status={r.billStatus}/></div>
                 <div style={{fontSize:"12px",color:T.textSub,lineHeight:"1.6",marginBottom:"10px"}}>{r.billStatusReason}</div>
-                {r.suspiciousCharges.map((c,i)=><div key={i} style={{background:T.suspBg,border:`1px solid ${T.suspBorder}`,borderRadius:"5px",padding:"7px 10px",marginBottom:"5px",fontSize:"11px",color:"#FF6B6B"}}>🚨 {c}</div>)}
-                {r.potentialErrors.map((e,i)=><div key={i} style={{background:T.warnBg,border:`1px solid ${T.warnBorder}`,borderRadius:"5px",padding:"7px 10px",marginBottom:"5px",fontSize:"11px",color:"#FF9500"}}>⚠ {e}</div>)}
+                {(r.suspiciousCharges||[]).map((c,i)=><div key={i} style={{background:T.suspBg,border:`1px solid ${T.suspBorder}`,borderRadius:"5px",padding:"7px 10px",marginBottom:"5px",fontSize:"11px",color:"#FF6B6B"}}>🚨 {c}</div>)}
+                {(r.potentialErrors||[]).map((e,i)=><div key={i} style={{background:T.warnBg,border:`1px solid ${T.warnBorder}`,borderRadius:"5px",padding:"7px 10px",marginBottom:"5px",fontSize:"11px",color:"#FF9500"}}>⚠ {e}</div>)}
               </div>
               <div style={{...CARD}}>
                 <SecHeader icon="📈" title="Usage Analysis" T={T}/>
