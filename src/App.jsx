@@ -104,7 +104,8 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 const SYSTEM_PROMPT = buildSystemPrompt(); // default — overridden per-analysis
 
 // ─── CHAT PROMPT ───────────────────────────────────────────────────────────────
-const buildChatPrompt = (r) => `You are an expert utility bill analyst specializing in electricity, gas, and water bills. A customer has questions about their specific analyzed bill. Full analysis:
+const buildChatPrompt = (r, ctx={}) => `You are an expert utility bill analyst specializing in electricity, gas, and water bills. A customer has questions about their specific analyzed bill.${ctx.accountType?` Customer type: ${ctx.accountType}${ctx.householdSize?`, ${ctx.householdSize}-person household`:''}${ctx.facilitySize?`, ${ctx.facilitySize}`:''}`:''}
+Full analysis:
 ${JSON.stringify(r, null, 2)}
 Answer directly using this bill's exact data. Provide exact scripts for calling the utility. Keep responses to 2-5 sentences unless steps are needed. Never invent numbers.`;
 
@@ -592,7 +593,7 @@ const TrendKPIs = ({bills, completedActions, T}) => {
 // ─── BILL CHAT ────────────────────────────────────────────────────────────────
 const QUICK_QS = ["Why is my bill so high?","How do I dispute a charge?","Which recommendation saves the most?","Walk me through the priority action","What's causing my usage rating?","How do I switch rate plans?"];
 
-const BillChat = ({billResult, T}) => {
+const BillChat = ({billResult, T, ctx={}}) => {
   const [messages, setMessages] = useState([{role:"assistant",content:`Hi! I've analyzed your ${billResult.provider} bill for ${billResult.billingPeriod} — ${billResult.totalCharged} for ${billResult.totalUsage||billResult.totalKwh}. Ask me anything about the charges, how to act on a recommendation, or what's driving your costs.`}]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -605,7 +606,7 @@ const BillChat = ({billResult, T}) => {
     const newMsgs=[...history,{role:"user",content:q}];
     setMessages(p=>[...p,{role:"user",content:q}]); setLoading(true);
     try {
-      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:buildChatPrompt(billResult),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})});
+      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:buildChatPrompt(billResult,ctx),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})});
       if(!res.ok) throw new Error(`Server error ${res.status}`);
       const data=await res.json();
       if(data.error) throw new Error(data.error.message);
@@ -1521,7 +1522,7 @@ export default function App() {
               Confidence: <strong style={{color:T.textDim}}>{r.analysisConfidence}</strong> · {r.confidenceNote}
             </div>
 
-            {showChat&&<BillChat billResult={r} T={T}/>}
+            {showChat&&<BillChat billResult={r} T={T} ctx={selectedBill?.context}/>}
           </div>
         )}
       </div>
