@@ -831,6 +831,9 @@ const CompareView = ({bills, compareIds, onClose, T, isMobile=false, onExport}) 
 };
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
+// ─── ACCESS GATE ──────────────────────────────────────────────────────────────
+const ACCESS_CODE = "energyaudit2025"; // change this anytime
+
 const TABS=[
   {key:"negotiation",label:"Negotiate",icon:"💬"},
   {key:"ratePlans",label:"Rate Plans",icon:"📊"},
@@ -842,6 +845,9 @@ const TABS=[
 
 export default function App() {
   const isMobile = useIsMobile();
+  const [authed, setAuthed] = useState(()=>localStorage.getItem("ea-auth")===ACCESS_CODE);
+  const [codeInput, setCodeInput] = useState("");
+  const [codeError, setCodeError] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
   const T = darkMode ? DARK : LIGHT;
   const [view, setView] = useState("analyze"); // analyze | history | tracker | detail | compare
@@ -1043,6 +1049,34 @@ export default function App() {
   const billCompleted = billRecs.filter(rec=>completedActions.has(actionId(rec.billId,rec.cat,rec.title)));
   const billSaved = Math.min(billCompleted.reduce((s,rec)=>s+parseMonthlySavings(rec.estimatedSavings),0), parseNum(selectedBill?.result?.totalCharged));
 
+
+  if(!authed) return (
+    <div style={{minHeight:"100vh",background:"#07070f",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{background:"#0D1117",border:"1px solid #1A2235",borderRadius:"16px",padding:"48px 40px",width:"100%",maxWidth:"380px",textAlign:"center"}}>
+        <div style={{width:"52px",height:"52px",background:"linear-gradient(135deg,#0D2035,#0a1a2e)",border:"1px solid #38BDF8",borderRadius:"12px",margin:"0 auto 24px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"22px"}}>⚡</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:"10px",letterSpacing:"0.15em",color:"#38BDF8",marginBottom:"8px",textTransform:"uppercase"}}>EnergyAudit AI</div>
+        <div style={{fontSize:"22px",fontWeight:"700",color:"#E8EAF0",marginBottom:"8px"}}>Access Required</div>
+        <div style={{fontSize:"13px",color:"#6B7A9A",marginBottom:"28px",lineHeight:"1.5"}}>This tool is for authorized clients only. Enter your access code to continue.</div>
+        <input
+          value={codeInput}
+          onChange={e=>{setCodeInput(e.target.value);setCodeError(false);}}
+          onKeyDown={e=>{if(e.key==="Enter"){if(codeInput.trim()===ACCESS_CODE){localStorage.setItem("ea-auth",ACCESS_CODE);setAuthed(true);}else{setCodeError(true);setCodeInput("");}}}}
+          type="password"
+          placeholder="Enter access code"
+          style={{width:"100%",background:"#07070f",border:`1px solid ${codeError?"#FF3B30":"#1A2235"}`,borderRadius:"8px",padding:"12px 16px",color:"#E8EAF0",fontSize:"14px",fontFamily:"'DM Mono',monospace",outline:"none",boxSizing:"border-box",marginBottom:"12px",textAlign:"center",letterSpacing:"0.1em"}}
+          autoFocus
+        />
+        {codeError&&<div style={{fontSize:"12px",color:"#FF3B30",marginBottom:"12px"}}>Incorrect code — contact us to request access.</div>}
+        <button
+          onClick={()=>{if(codeInput.trim()===ACCESS_CODE){localStorage.setItem("ea-auth",ACCESS_CODE);setAuthed(true);}else{setCodeError(true);setCodeInput("");} }}
+          style={{width:"100%",background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",borderRadius:"8px",padding:"13px",color:"#040d18",fontSize:"14px",fontWeight:"700",cursor:"pointer",fontFamily:"inherit"}}
+        >
+          Enter
+        </button>
+        <div style={{marginTop:"20px",fontSize:"11px",color:"#2A3550"}}>energy-audit-ai-ochre.vercel.app</div>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{minHeight:"100vh",background:T.bg,fontFamily:"'DM Sans',system-ui,sans-serif",color:T.text,transition:"background .3s,color .3s"}}>
