@@ -279,7 +279,7 @@ function buildReport(d, completedActions, billId) {
   const now=new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
   const sc=SC[d.billStatus]||"#FF9500";
   const cats=["negotiation","ratePlans","providers","equipment","behavioral","incentives"];
-  const recs=cats.flatMap(cat=>(d.recommendations[cat]||[]).map(i=>({...i,cat:CAT_LABELS[cat]})));
+  const recs=cats.flatMap(cat=>((d.recommendations||{})[cat]||[]).map(i=>({...i,cat:CAT_LABELS[cat]})));
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Energy Audit</title><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;600&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#f9fafb;color:#1a1a2e;-webkit-print-color-adjust:exact}
   .page{max-width:960px;margin:0 auto;background:#fff}.hdr{background:#0d0d1a;color:#fff;padding:44px 52px 36px}.lbl{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:#38BDF8;margin-bottom:10px;text-transform:uppercase}.ttl{font-family:'DM Serif Display',serif;font-size:36px;margin-bottom:6px}.sub{font-size:13px;color:#8892a4;margin-bottom:28px}.meta{display:flex;gap:44px;flex-wrap:wrap}.ml label{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:3px}.ml span{font-family:'DM Mono',monospace;font-size:13px;color:#fff}.bdg{display:inline-block;padding:3px 12px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:#fff;margin-top:3px}.body{padding:44px 52px}.sec{margin-bottom:36px}.st{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #f3f4f6;padding-bottom:8px;margin-bottom:18px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:18px}.stat{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:18px}.sl{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}.sv{font-family:'DM Mono',monospace;font-size:20px;font-weight:600}.pri{background:linear-gradient(135deg,#0d0d1a,#1a1a3e);color:#fff;border-radius:10px;padding:20px 24px;margin-bottom:28px;border-left:4px solid #38BDF8}.pl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:#38BDF8;margin-bottom:6px}.pt{font-size:14px;line-height:1.6;color:#e5e7eb}table{width:100%;border-collapse:collapse}th{background:#f9fafb;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;text-align:left;padding:9px 11px;border-bottom:2px solid #e5e7eb}td{padding:9px 11px;border-bottom:1px solid #e5e7eb;font-size:12px}.done td{background:#f0fdf4}.sv2{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #6ee7b7;border-radius:10px;padding:20px 24px;margin-top:28px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}.sv2l{font-size:12px;color:#065f46;margin-bottom:3px}.sv2v{font-family:'DM Mono',monospace;font-size:26px;font-weight:700;color:#047857}.ftr{background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 52px;display:flex;justify-content:space-between;align-items:center}.fb{font-family:'DM Mono',monospace;font-size:12px;color:#6b7280}.fd{font-size:10px;color:#9ca3af;max-width:480px;line-height:1.5}.meth{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:28px 32px;margin-bottom:36px}.meth-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px}.src-cat{margin-bottom:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:#38BDF8;letter-spacing:.1em;text-transform:uppercase}.src-item{margin-bottom:10px}.src-name{font-size:12px;font-weight:600;color:#1a1a2e;margin-bottom:2px}.src-desc{font-size:11px;color:#6b7280;line-height:1.5}.src-url{font-size:10px;color:#0ea5e9;font-family:'DM Mono',monospace}.disc{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:14px 18px;margin-top:28px;font-size:11px;color:#92400e;line-height:1.6}
   @media (prefers-color-scheme:dark){
@@ -543,14 +543,14 @@ function buildCompareReport(left, right, completedActions) {
       <div class="recs-grid">
         <div>
           <div class="rec-col-title" style="color:#0ea5e9">Only in Bill A (${onlyL.length})</div>
-          ${onlyL.length>0?onlyL.map(r=>`<div class="rec-item"><div class="rec-title">${r.title}</div><div class="rec-savings">${r.estimatedSavings}</div></div>`).join(""):`<div style="font-size:11px;color:#9ca3af;padding:8px 0">All recommendations also appear in Bill B</div>`}
+          ${onlyL.length>0?onlyL.map(r=>`<div class="rec-item"><div class="rec-title">${escHtml(r.title)}</div><div class="rec-savings">${escHtml(r.estimatedSavings)}</div></div>`).join(""):`<div style="font-size:11px;color:#9ca3af;padding:8px 0">All recommendations also appear in Bill B</div>`}
         </div>
         <div>
           <div class="rec-col-title" style="color:#059669">Only in Bill B (${onlyR.length})</div>
-          ${onlyR.length>0?onlyR.map(r=>`<div class="rec-item"><div class="rec-title">${r.title}</div><div class="rec-savings">${r.estimatedSavings}</div></div>`).join(""):`<div style="font-size:11px;color:#9ca3af;padding:8px 0">All recommendations also appear in Bill A</div>`}
+          ${onlyR.length>0?onlyR.map(r=>`<div class="rec-item"><div class="rec-title">${escHtml(r.title)}</div><div class="rec-savings">${escHtml(r.estimatedSavings)}</div></div>`).join(""):`<div style="font-size:11px;color:#9ca3af;padding:8px 0">All recommendations also appear in Bill A</div>`}
         </div>
       </div>
-      ${shared.length>0?`<div style="margin-top:12px"><div class="rec-col-title" style="color:#d97706;margin-bottom:8px">Persistent Issues — In Both Bills (${shared.length})</div><div class="shared-grid">${shared.map(r=>`<div class="shared-item"><div class="rec-title">${r.title}</div><div class="rec-savings">${r.estimatedSavings}</div></div>`).join("")}</div></div>`:""}
+      ${shared.length>0?`<div style="margin-top:12px"><div class="rec-col-title" style="color:#d97706;margin-bottom:8px">Persistent Issues — In Both Bills (${shared.length})</div><div class="shared-grid">${shared.map(r=>`<div class="shared-item"><div class="rec-title">${escHtml(r.title)}</div><div class="rec-savings">${escHtml(r.estimatedSavings)}</div></div>`).join("")}</div></div>`:""}
     </div>
   </div>
   <div class="ftr"><div class="fb">⚡ EnergyAudit AI · ${now}</div><div class="fd">AI-generated comparison report. Verify all findings against current published utility tariff schedules before taking action.</div></div>
@@ -945,7 +945,7 @@ export default function App() {
 
   const handleFile = useCallback((f)=>{
     if(!f) return; setFile(f); setError(null);
-    const r=new FileReader(); r.onload=e=>setImageDataUrl(e.target.result); r.readAsDataURL(f);
+    const r=new FileReader(); r.onload=e=>setImageDataUrl(e.target.result); r.onerror=()=>setError('Could not read file — try a different image or PDF.'); r.readAsDataURL(f);
   },[]);
 
   const analyze = async()=>{
@@ -995,10 +995,12 @@ export default function App() {
   };
 
   const dlCompareReport = (left, right) => {
-    const html = buildCompareReport(left, right, completedActions);
-    openReport(html, "comparison-" + left.result.provider.replace(/[^a-z0-9]/gi,"-").toLowerCase() + ".html");
-    setPdfToast(true);
-    setTimeout(()=>setPdfToast(false), 7000);
+    try {
+      const html = buildCompareReport(left, right, completedActions);
+      openReport(html, "comparison-" + left.result.provider.replace(/[^a-z0-9]/gi,"-").toLowerCase() + ".html");
+      setPdfToast(true);
+      setTimeout(()=>setPdfToast(false), 7000);
+    } catch(e) { console.error("Compare PDF failed:", e); }
   };
 
   const loadDemo = ()=>{ setBills(DEMO_BILLS); setView("history"); };
@@ -1506,10 +1508,10 @@ export default function App() {
                 {TABS.map(t=><button key={t.key} className={`tb ${activeTab===t.key?"ta":""}`} onClick={()=>setActiveTab(t.key)}>{t.icon} {t.label}</button>)}
               </div>
               <div style={{padding:"14px"}}>
-                {r.recommendations[activeTab]?.length>0
-                  ?r.recommendations[activeTab].map((item,i)=>{
+                {(r.recommendations?.[activeTab]||[]).length>0
+                  ?(r.recommendations?.[activeTab]||[]).map((item,i)=>{
                     const aid=actionId(selectedBill.id,activeTab,item.title);
-                    return <RecCard key={i} item={item} T={T} completed={completedActions.has(aid)} onToggle={toggleAction} actionKey={aid}/>;
+                    return <RecCard key={item.title||i} item={item} T={T} completed={completedActions.has(aid)} onToggle={toggleAction} actionKey={aid}/>;
                   })
                   :<div style={{color:T.textDim,fontSize:"12px",padding:"12px 0"}}>No recommendations in this category for your bill.</div>}
               </div>
