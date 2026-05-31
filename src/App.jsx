@@ -1073,7 +1073,7 @@ export default function App() {
         >
           Enter
         </button>
-        <div style={{marginTop:"20px",fontSize:"11px",color:"#2A3550"}}>energy-audit-ai-ochre.vercel.app</div>
+        <div style={{marginTop:"20px",fontSize:"11px",color:"#2A3550"}}>mymeteriq.com</div>
       </div>
     </div>
   );
