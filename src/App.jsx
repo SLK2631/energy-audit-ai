@@ -856,12 +856,20 @@ const COM_BILLS = [
 // ─── DEMO INLINE PDF PREVIEW ──────────────────────────────────────────────────
 const PdfPreview = ({ html, onClose, filename }) => {
   const [blobUrl, setBlobUrl] = useState(null);
+  const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && window.innerWidth < 768);
+
   useEffect(() => {
     if (!html) return;
     const printHtml = html.replace("</head>", `<style>@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}@page{margin:0;size:A4}</style></head>`);
     const blob = new Blob([printHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     setBlobUrl(url);
+    if (isMobileDevice) {
+      // On mobile open immediately in new tab — iframe is useless on iOS
+      const win = window.open(url, "_blank");
+      if (!win) { /* pop-up blocked — fall through to show download button */ }
+      else { onClose(); } // close modal, report is in new tab
+    }
     return () => URL.revokeObjectURL(url);
   }, [html]);
 
@@ -871,6 +879,22 @@ const PdfPreview = ({ html, onClose, filename }) => {
     a.href = blobUrl; a.download = filename || "mymeteriq-report.html";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
+
+  // Mobile fallback if new tab was blocked
+  if (isMobileDevice) return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+      <div style={{ background: "#0d0d1a", border: "1px solid rgba(56,189,248,0.2)", borderRadius: "14px", padding: "28px 24px", textAlign: "center", maxWidth: "320px", width: "100%" }}>
+        <div style={{ fontSize: "36px", marginBottom: "12px" }}>📄</div>
+        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "11px", color: "#38BDF8", marginBottom: "8px", letterSpacing: "0.1em" }}>REPORT READY</div>
+        <div style={{ fontSize: "13px", color: "#8892a4", marginBottom: "20px", lineHeight: "1.6" }}>Your report is ready. Tap below to open or download it.</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {blobUrl && <a href={blobUrl} target="_blank" rel="noopener noreferrer" style={{ background: "linear-gradient(135deg,#38BDF8,#0EA5E9)", border: "none", color: "#040d18", padding: "13px", borderRadius: "9px", fontSize: "13px", fontWeight: "700", fontFamily: "monospace", textDecoration: "none", display: "block" }}>↗ Open Report</a>}
+          <button onClick={download} style={{ background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.3)", color: "#38BDF8", padding: "12px", borderRadius: "9px", cursor: "pointer", fontSize: "13px", fontWeight: "700", fontFamily: "monospace" }}>↓ Download</button>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#aaa", padding: "11px", borderRadius: "9px", cursor: "pointer", fontSize: "13px", fontFamily: "monospace" }}>✕ Close</button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", flexDirection: "column" }}>
@@ -892,6 +916,7 @@ const DemoPage = ({ type }) => {
   const bills = isResidential ? RES_BILLS : COM_BILLS;
   const label = isResidential ? "Residential" : "Commercial";
   const acct = isResidential ? "123 Oakwood Drive — MyMeterIQ Demo Home" : "MyMeterIQ Corp. — Main Street Office";
+  const isMobile = useIsMobile();
 
   const [darkMode, setDarkMode] = useState(true);
   const T = darkMode ? DARK : LIGHT;
@@ -981,7 +1006,7 @@ const DemoPage = ({ type }) => {
       {pdfHtml && <PdfPreview html={pdfHtml} filename={pdfFilename} onClose={() => setPdfHtml(null)} />}
 
       {/* Topbar */}
-      <div style={{ borderBottom: `1px solid ${T.topbarBorder}`, padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: T.topbar, zIndex: 100, backdropFilter: "blur(10px)", flexWrap: "wrap", gap: "8px" }}>
+      <div style={{ borderBottom: `1px solid ${T.topbarBorder}`, padding: isMobile ? "10px 14px" : "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: T.topbar, zIndex: 100, backdropFilter: "blur(10px)", flexWrap: "wrap", gap: "8px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <img src="/logo.svg" alt="MyMeterIQ" style={{ width: "44px", height: "44px", borderRadius: "10px", boxShadow: "0 0 12px rgba(56,189,248,.5),0 2px 8px rgba(0,0,0,.4)", flexShrink: 0, border: "1px solid rgba(56,189,248,.3)" }} />
           <div>
@@ -989,59 +1014,74 @@ const DemoPage = ({ type }) => {
             <div style={{ fontSize: "8px", color: T.textDim, letterSpacing: "0.16em", textTransform: "uppercase" }}>{label} Demo</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <div style={{ background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: "6px", padding: "4px 10px", fontFamily: "monospace", fontSize: "10px", color: "#38BDF8" }}>🎯 Interactive Demo — {label}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+          {!isMobile && <div style={{ background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: "6px", padding: "4px 10px", fontFamily: "monospace", fontSize: "10px", color: "#38BDF8" }}>🎯 Interactive Demo — {label}</div>}
           <div style={{ display: "flex", gap: "6px" }}>
-            <a href="/residentialdemo" style={{ background: isResidential ? "rgba(56,189,248,0.15)" : T.bgCard, border: `1px solid ${isResidential ? "rgba(56,189,248,0.4)" : T.border}`, color: isResidential ? "#38BDF8" : T.textDim, padding: "5px 11px", borderRadius: "6px", cursor: "pointer", fontSize: "10px", fontFamily: "monospace", textDecoration: "none" }}>🏠 Residential</a>
-            <a href="/commercialdemo" style={{ background: !isResidential ? "rgba(56,189,248,0.15)" : T.bgCard, border: `1px solid ${!isResidential ? "rgba(56,189,248,0.4)" : T.border}`, color: !isResidential ? "#38BDF8" : T.textDim, padding: "5px 11px", borderRadius: "6px", cursor: "pointer", fontSize: "10px", fontFamily: "monospace", textDecoration: "none" }}>🏢 Commercial</a>
+            <a href="/residentialdemo" style={{ background: isResidential ? "rgba(56,189,248,0.15)" : T.bgCard, border: `1px solid ${isResidential ? "rgba(56,189,248,0.4)" : T.border}`, color: isResidential ? "#38BDF8" : T.textDim, padding: "5px 10px", borderRadius: "6px", cursor: "pointer", fontSize: "10px", fontFamily: "monospace", textDecoration: "none" }}>{isMobile ? "🏠" : "🏠 Residential"}</a>
+            <a href="/commercialdemo" style={{ background: !isResidential ? "rgba(56,189,248,0.15)" : T.bgCard, border: `1px solid ${!isResidential ? "rgba(56,189,248,0.4)" : T.border}`, color: !isResidential ? "#38BDF8" : T.textDim, padding: "5px 10px", borderRadius: "6px", cursor: "pointer", fontSize: "10px", fontFamily: "monospace", textDecoration: "none" }}>{isMobile ? "🏢" : "🏢 Commercial"}</a>
           </div>
-          <button onClick={() => setDarkMode(d => !d)} style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: "18px", padding: "5px 11px", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", gap: "5px", color: T.textSub }}>{darkMode ? "☀ Light" : "🌙 Dark"}</button>
-
+          <button onClick={() => setDarkMode(d => !d)} style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: "18px", padding: "5px 11px", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", gap: "5px", color: T.textSub }}>{darkMode ? "☀" : "🌙"}</button>
         </div>
       </div>
 
       {/* Hero Banner */}
-      <div style={{ background: "linear-gradient(135deg,rgba(56,189,248,0.06),rgba(52,199,89,0.04))", borderBottom: `1px solid ${T.border}`, padding: "20px 24px", textAlign: "center" }}>
-        <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: "22px", marginBottom: "6px" }}>
+      <div style={{ background: "linear-gradient(135deg,rgba(56,189,248,0.06),rgba(52,199,89,0.04))", borderBottom: `1px solid ${T.border}`, padding: isMobile ? "14px 16px" : "20px 24px", textAlign: "center" }}>
+        <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: isMobile ? "17px" : "22px", marginBottom: "6px" }}>
           {isResidential ? "Residential Bill Analysis Demo" : "Commercial & Industrial Bill Analysis Demo"}
         </div>
-        <div style={{ fontSize: "12px", color: T.textSub, marginBottom: "8px" }}>{acct} · 6 months of Electric, Gas & Water bills</div>
-        <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
+        <div style={{ fontSize: "11px", color: T.textSub, marginBottom: "8px" }}>{isMobile ? "Electric · Gas · Water · 6 months" : `${acct} · 6 months of Electric, Gas & Water bills`}</div>
+        {!isMobile && <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
           {[{ icon: "⚡", label: "Electric" }, { icon: "🔥", label: "Gas" }, { icon: "💧", label: "Water" }].map(u => (
             <span key={u.label} style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: "20px", padding: "3px 12px", fontSize: "11px", fontFamily: "monospace", color: T.textSub }}>{u.icon} {u.label}</span>
           ))}
-        </div>
+        </div>}
       </div>
 
       {/* Demo Tab Nav */}
-      <div style={{ borderBottom: `1px solid ${T.border}`, padding: "0 24px", background: T.topbar, display: "flex", gap: "4px", overflowX: "auto" }}>
+      <div style={{ borderBottom: `1px solid ${T.border}`, padding: isMobile ? "0 10px" : "0 24px", background: T.topbar, display: "flex", gap: "4px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         {DEMO_TABS.map(t => (
-          <button key={t.key} className={`dtb ${demoTab === t.key ? "dta" : ""}`} onClick={() => setDemoTab(t.key)}>{t.icon} {t.label}</button>
+          <button key={t.key} className={`dtb ${demoTab === t.key ? "dta" : ""}`} onClick={() => setDemoTab(t.key)} style={{ padding: isMobile ? "9px 10px" : undefined }}>
+            {t.icon}{!isMobile && ` ${t.label}`}
+          </button>
         ))}
       </div>
 
-      <div style={{ maxWidth: "1080px", margin: "0 auto", padding: "28px 20px" }}>
+      <div style={{ maxWidth: "1080px", margin: "0 auto", padding: isMobile ? "14px 12px" : "28px 20px" }}>
 
         {/* ══ TAB 1: SINGLE BILL ANALYSIS ══ */}
         {demoTab === "single" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "240px 1fr", gap: "16px" }}>
               {/* Bill selector */}
               <div>
                 <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "10px", color: "#38BDF8", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "10px", fontWeight: "700" }}>Select a Bill</div>
-                {bills.map((b, i) => (
-                  <div key={b.id} className={`br2${i === selectedIdx ? " sel" : ""}`} onClick={() => { setSelectedIdx(i); setActiveRecTab("negotiation"); }}>
-                    <span style={{ fontSize: "16px" }}>{BILL_TYPE_ICON[b.result.billType] || "⚡"}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: "monospace", fontSize: "11px", fontWeight: "700", color: billTypeColors[b.result.billType] || "#38BDF8", marginBottom: "2px" }}>{b.result.billType}</div>
-                      <div style={{ fontSize: "10px", color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shortPeriod(b.result.billingPeriod)}</div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontFamily: "monospace", fontSize: "12px", fontWeight: "700", color: T.text }}>{b.result.totalCharged}</div>
-                      <StatusBadge status={b.result.billStatus} small />
-                    </div>
+                {isMobile ? (
+                  <div style={{ display: "flex", gap: "8px", overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "6px", marginBottom: "4px" }}>
+                    {bills.map((b, i) => (
+                      <div key={b.id} onClick={() => { setSelectedIdx(i); setActiveRecTab("negotiation"); }}
+                        style={{ flexShrink: 0, background: i === selectedIdx ? "rgba(56,189,248,0.08)" : T.bgCard2, border: `1px solid ${i === selectedIdx ? "rgba(56,189,248,0.4)" : T.border}`, borderRadius: "8px", padding: "10px 12px", cursor: "pointer", minWidth: "100px", textAlign: "center" }}>
+                        <div style={{ fontSize: "18px", marginBottom: "4px" }}>{BILL_TYPE_ICON[b.result.billType] || "⚡"}</div>
+                        <div style={{ fontFamily: "monospace", fontSize: "9px", fontWeight: "700", color: billTypeColors[b.result.billType] || "#38BDF8", marginBottom: "2px" }}>{b.result.billType}</div>
+                        <div style={{ fontSize: "9px", color: T.textDim }}>{shortPeriod(b.result.billingPeriod)}</div>
+                        <div style={{ fontFamily: "monospace", fontSize: "11px", fontWeight: "700", color: T.text, marginTop: "3px" }}>{b.result.totalCharged}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  bills.map((b, i) => (
+                    <div key={b.id} className={`br2${i === selectedIdx ? " sel" : ""}`} onClick={() => { setSelectedIdx(i); setActiveRecTab("negotiation"); }}>
+                      <span style={{ fontSize: "16px" }}>{BILL_TYPE_ICON[b.result.billType] || "⚡"}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: "monospace", fontSize: "11px", fontWeight: "700", color: billTypeColors[b.result.billType] || "#38BDF8", marginBottom: "2px" }}>{b.result.billType}</div>
+                        <div style={{ fontSize: "10px", color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shortPeriod(b.result.billingPeriod)}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontFamily: "monospace", fontSize: "12px", fontWeight: "700", color: T.text }}>{b.result.totalCharged}</div>
+                        <StatusBadge status={b.result.billStatus} small />
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* Analysis panel */}
@@ -1062,7 +1102,7 @@ const DemoPage = ({ type }) => {
                 </div>
 
                 {/* Verification + Usage */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "11px", marginBottom: "11px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "11px", marginBottom: "11px" }}>
                   <div style={CARD}>
                     <SecHeader icon="🔍" title="Bill Verification" T={T} />
                     <div style={{ marginBottom: "9px" }}><StatusBadge status={r.billStatus} /></div>
@@ -1143,7 +1183,7 @@ const DemoPage = ({ type }) => {
             </div>
 
             {/* Charts */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "18px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "14px", marginBottom: "18px" }}>
               <div style={CARD}>
                 <div style={{ fontSize: "9px", color: T.textDim, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px", fontFamily: "monospace" }}>Monthly Cost ($)</div>
                 <ResponsiveContainer width="100%" height={165}>
@@ -1196,23 +1236,37 @@ const DemoPage = ({ type }) => {
         {/* ══ TAB 3: SINGLE BILL PDF ══ */}
         {demoTab === "singlepdf" && (
           <div>
-            <div style={{ textAlign: "center", marginBottom: "28px" }}>
-              <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: "26px", marginBottom: "8px" }}>Single Bill PDF Report</div>
+            <div style={{ textAlign: "center", marginBottom: isMobile ? "16px" : "28px" }}>
+              <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: isMobile ? "20px" : "26px", marginBottom: "8px" }}>Single Bill PDF Report</div>
               <div style={{ fontSize: "13px", color: T.textSub, marginBottom: "16px" }}>Select any bill and preview the full analysis report. Download as a print-ready HTML file.</div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "240px 1fr", gap: "16px" }}>
               <div>
                 <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "10px", color: "#38BDF8", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "10px", fontWeight: "700" }}>Choose Bill</div>
-                {bills.map((b, i) => (
-                  <div key={b.id} className={`br2${i === selectedIdx ? " sel" : ""}`} onClick={() => setSelectedIdx(i)}>
-                    <span style={{ fontSize: "16px" }}>{BILL_TYPE_ICON[b.result.billType] || "⚡"}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: "monospace", fontSize: "10px", fontWeight: "700", color: billTypeColors[b.result.billType] || "#38BDF8" }}>{b.result.billType}</div>
-                      <div style={{ fontSize: "10px", color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shortPeriod(b.result.billingPeriod)}</div>
-                    </div>
-                    <span style={{ fontFamily: "monospace", fontSize: "11px", fontWeight: "700" }}>{b.result.totalCharged}</span>
+                {isMobile ? (
+                  <div style={{ display: "flex", gap: "8px", overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "6px", marginBottom: "4px" }}>
+                    {bills.map((b, i) => (
+                      <div key={b.id} onClick={() => setSelectedIdx(i)}
+                        style={{ flexShrink: 0, background: i === selectedIdx ? "rgba(56,189,248,0.08)" : T.bgCard2, border: `1px solid ${i === selectedIdx ? "rgba(56,189,248,0.4)" : T.border}`, borderRadius: "8px", padding: "10px 12px", cursor: "pointer", minWidth: "100px", textAlign: "center" }}>
+                        <div style={{ fontSize: "18px", marginBottom: "4px" }}>{BILL_TYPE_ICON[b.result.billType] || "⚡"}</div>
+                        <div style={{ fontFamily: "monospace", fontSize: "9px", fontWeight: "700", color: billTypeColors[b.result.billType] || "#38BDF8", marginBottom: "2px" }}>{b.result.billType}</div>
+                        <div style={{ fontSize: "9px", color: T.textDim }}>{shortPeriod(b.result.billingPeriod)}</div>
+                        <div style={{ fontFamily: "monospace", fontSize: "11px", fontWeight: "700", color: T.text, marginTop: "3px" }}>{b.result.totalCharged}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  bills.map((b, i) => (
+                    <div key={b.id} className={`br2${i === selectedIdx ? " sel" : ""}`} onClick={() => setSelectedIdx(i)}>
+                      <span style={{ fontSize: "16px" }}>{BILL_TYPE_ICON[b.result.billType] || "⚡"}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: "monospace", fontSize: "10px", fontWeight: "700", color: billTypeColors[b.result.billType] || "#38BDF8" }}>{b.result.billType}</div>
+                        <div style={{ fontSize: "10px", color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shortPeriod(b.result.billingPeriod)}</div>
+                      </div>
+                      <span style={{ fontFamily: "monospace", fontSize: "11px", fontWeight: "700" }}>{b.result.totalCharged}</span>
+                    </div>
+                  ))
+                )}
               </div>
               <div style={{ ...CARD, textAlign: "center" }}>
                 <div style={{ fontSize: "48px", marginBottom: "16px" }}>📄</div>
@@ -1238,10 +1292,10 @@ const DemoPage = ({ type }) => {
         {demoTab === "multipdf" && (
           <div>
             <div style={{ textAlign: "center", marginBottom: "24px" }}>
-              <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: "26px", marginBottom: "8px" }}>Multi-Bill Comparison PDF</div>
+              <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: isMobile ? "20px" : "26px", marginBottom: "8px" }}>Multi-Bill Comparison PDF</div>
               <div style={{ fontSize: "13px", color: T.textSub }}>Check the bills you want included. The report compares the earliest and latest selected bills.</div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "20px" }}>
               {/* Bill picker */}
               <div style={CARD}>
                 <SecHeader icon="☑" title="Select Bills to Include" T={T} />
