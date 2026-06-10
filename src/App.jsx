@@ -26,6 +26,7 @@ const buildSystemPrompt = (ctx={}) => {
   return `You are a world-class utility bill analyst, consumer advocate, and efficiency consultant. You analyze electricity, natural gas, and water/sewer bills for residential, commercial, and industrial customers. First detect the bill type, then apply the appropriate analysis.
 
 STEP 1 — DETECT BILL TYPE
+Also extract the utility's customer service phone number and website URL — printed on almost every bill. Store as providerPhone and providerWebsite (null if not found).
 Identify: ELECTRIC, GAS, WATER, or COMBINED. Use appropriate units and benchmarks.
 
 STEP 2 — BILL VERIFICATION
@@ -338,7 +339,7 @@ function buildReport(d, completedActions, billId) {
       <div class="lbl" style="margin-bottom:4px">MyMeterIQ</div>
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:#6b87a4;letter-spacing:0.08em">${({"ELECTRIC":"⚡ Electric Bill","GAS":"🔥 Gas Bill","WATER":"💧 Water Bill","COMBINED":"🏭 Combined Utility Bill"})[d.billType]||"⚡ Utility Bill"} Analysis</div>
     </div>
-  </div><div class="ttl">Energy Bill Analysis</div><div class="sub">AI-Powered Billing Verification &amp; Cost Reduction Report</div><div class="meta"><div class="ml"><label>Provider</label><span>${escHtml(d.provider)}</span></div><div class="ml"><label>Period</label><span>${escHtml(d.billingPeriod)}</span></div><div class="ml"><label>Generated</label><span>${now}</span></div><div class="ml"><label>Status</label><br><span class="bdg" style="background:${sc}">${escHtml(d.billStatus).replace('_',' ')}</span></div></div></div>
+  </div><div class="ttl">Energy Bill Analysis</div><div class="sub">AI-Powered Billing Verification &amp; Cost Reduction Report</div><div class="meta"><div class="ml"><label>Provider</label><span>${escHtml(d.provider)}</span>${d.providerPhone?`<br><span style="font-size:11px;color:#6b7280">📞 ${escHtml(d.providerPhone)}</span>`:''} ${d.providerWebsite?`<br><span style="font-size:11px;color:#6b7280">🌐 ${escHtml(d.providerWebsite)}</span>`:''}</div><div class="ml"><label>Period</label><span>${escHtml(d.billingPeriod)}</span></div><div class="ml"><label>Generated</label><span>${now}</span></div><div class="ml"><label>Status</label><br><span class="bdg" style="background:${sc}">${escHtml(d.billStatus).replace('_',' ')}</span></div></div></div>
   <div class="body">
   <div class="pri"><div class="pl">★ Priority Action</div><div class="pt">${escHtml(d.priorityAction)}</div></div>
   <div class="sec"><div class="st">Bill Summary</div><div class="g3"><div class="stat"><div class="sl">Total Charged</div><div class="sv">${escHtml(d.totalCharged)}</div></div><div class="stat"><div class="sl">Usage</div><div class="sv">${escHtml(d.totalUsage||d.totalKwh)}</div></div><div class="stat"><div class="sl">Rate/Unit</div><div class="sv">${escHtml(d.ratePerUnit||d.ratePerKwh)}</div></div></div></div>
@@ -499,8 +500,8 @@ function buildCompareReport(left, right, completedActions) {
     <div class="sub">${escHtml(rl.billingPeriod)} vs ${escHtml(rr.billingPeriod)}</div>
     <div class="meta">
       <div class="ml"><label>Generated</label><span>${now}</span></div>
-      <div class="ml"><label>Provider A</label><span>${escHtml(rl.provider)}</span></div>
-      <div class="ml"><label>Provider B</label><span>${escHtml(rr.provider)}</span></div>
+      <div class="ml"><label>Provider A</label><span>${escHtml(rl.provider)}</span>${rl.providerPhone?`<br><span style="font-size:11px;color:#6b7280">📞 ${escHtml(rl.providerPhone)}</span>`:''}</div>
+      <div class="ml"><label>Provider B</label><span>${escHtml(rr.provider)}</span>${rr.providerPhone?`<br><span style="font-size:11px;color:#6b7280">📞 ${escHtml(rr.providerPhone)}</span>`:''}</div>
     </div>
   </div>
   <div class="body">
