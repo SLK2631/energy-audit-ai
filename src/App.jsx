@@ -991,6 +991,7 @@ const DemoPage = ({ type }) => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         html, body, #root { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; margin: 0 !important; padding: 0 !important; }
+        * { box-sizing: border-box; }
         *{transition:background-color .2s,border-color .2s,color .15s}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${T.scrollTrack}}::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px}
         .dtb{background:none;border:none;cursor:pointer;padding:9px 16px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.05em;transition:all .15s;color:${T.navBtn};white-space:nowrap}
@@ -1088,7 +1089,7 @@ const DemoPage = ({ type }) => {
               {/* Analysis panel */}
               <div>
                 {/* Stats */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "9px", marginBottom: "12px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit,minmax(140px,1fr))", gap: "9px", marginBottom: "12px" }}>
                   {[
                     { label: "Total Charged", v: r.totalCharged, c: T.text },
                     { label: "Usage", v: r.totalUsage || r.totalKwh, c: billTypeColors[r.billType] || "#38BDF8" },
@@ -1107,9 +1108,9 @@ const DemoPage = ({ type }) => {
                   <div style={CARD}>
                     <SecHeader icon="🔍" title="Bill Verification" T={T} />
                     <div style={{ marginBottom: "9px" }}><StatusBadge status={r.billStatus} /></div>
-                    <div style={{ fontSize: "12px", color: T.textSub, lineHeight: "1.6", marginBottom: "10px" }}>{r.billStatusReason}</div>
-                    {(r.suspiciousCharges || []).map((c, i) => <div key={i} style={{ background: T.suspBg, border: `1px solid ${T.suspBorder}`, borderRadius: "5px", padding: "7px 10px", marginBottom: "5px", fontSize: "11px", color: "#FF6B6B" }}>🚨 {c}</div>)}
-                    {(r.potentialErrors || []).map((e, i) => <div key={i} style={{ background: T.warnBg, border: `1px solid ${T.warnBorder}`, borderRadius: "5px", padding: "7px 10px", marginBottom: "5px", fontSize: "11px", color: "#FF9500" }}>⚠ {e}</div>)}
+                    <div style={{ fontSize: "12px", color: T.textSub, lineHeight: "1.6", marginBottom: "10px", wordBreak: "break-word" }}>{r.billStatusReason}</div>
+                    {(r.suspiciousCharges || []).map((c, i) => <div key={i} style={{ background: T.suspBg, border: `1px solid ${T.suspBorder}`, borderRadius: "5px", padding: "7px 10px", marginBottom: "5px", fontSize: "11px", color: "#FF6B6B", wordBreak: "break-word", overflowWrap: "anywhere" }}>🚨 {c}</div>)}
+                    {(r.potentialErrors || []).map((e, i) => <div key={i} style={{ background: T.warnBg, border: `1px solid ${T.warnBorder}`, borderRadius: "5px", padding: "7px 10px", marginBottom: "5px", fontSize: "11px", color: "#FF9500", wordBreak: "break-word", overflowWrap: "anywhere" }}>⚠ {e}</div>)}
                   </div>
                   <div style={CARD}>
                     <SecHeader icon="📈" title="Usage Analysis" T={T} />
