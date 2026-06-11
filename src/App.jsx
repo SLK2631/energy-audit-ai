@@ -1089,22 +1089,22 @@ const DemoPage = ({ type }) => {
               {/* Analysis panel */}
               <div style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden" }}>
                 {/* Stats */}
-                <div style={{ display: isMobile ? "flex" : "grid", flexWrap: "wrap", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "9px", marginBottom: "12px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit,minmax(140px,1fr))", gap: "9px", marginBottom: "12px" }}>
                   {[
                     { label: "Total Charged", v: r.totalCharged, c: T.text },
                     { label: "Usage", v: r.totalUsage || r.totalKwh, c: billTypeColors[r.billType] || "#38BDF8" },
                     { label: "Rate / Unit", v: r.ratePerUnit || r.ratePerKwh, c: "#FF9500" },
                     { label: "vs. Regional Avg", v: r.regionalComparison?.percentageDifference || "N/A", c: (r.regionalComparison?.percentageDifference || "").startsWith("+") ? "#FF3B30" : "#34C759" },
                   ].map(s => (
-                    <div key={s.label} style={{ ...CARD, ...(isMobile ? { width: "calc(50% - 5px)", flexShrink: 0 } : {}) }}>
+                    <div key={s.label} style={CARD}>
                       <div style={{ fontSize: "9px", color: T.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "5px" }}>{s.label}</div>
-                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: isMobile ? "14px" : "18px", fontWeight: "700", color: s.c, wordBreak: "break-word", overflowWrap: "anywhere" }}>{s.v}</div>
+                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: isMobile ? "15px" : "18px", fontWeight: "700", color: s.c, wordBreak: "break-word", overflowWrap: "anywhere" }}>{s.v}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Verification + Usage */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "11px", marginBottom: "11px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "11px", marginBottom: "11px", maxWidth: "100%", overflow: "hidden" }}>
                   <div style={CARD}>
                     <SecHeader icon="🔍" title="Bill Verification" T={T} />
                     <div style={{ marginBottom: "9px" }}><StatusBadge status={r.billStatus} /></div>
