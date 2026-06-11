@@ -1361,6 +1361,9 @@ const DemoPage = ({ type }) => {
       {/* Footer */}
       <div style={{ borderTop: `1px solid ${T.border}`, padding: "20px 24px", textAlign: "center", fontSize: "11px", color: T.textDim }}>
         <span style={{ fontFamily: "monospace" }}>⚡ MyMeterIQ · Interactive Demo</span>
+        <div style={{ marginTop: "10px", fontSize: "10px", color: T.textFaint, lineHeight: "1.6", maxWidth: "560px", margin: "10px auto 0" }}>
+          All bills, charges, savings estimates, and regional averages shown here are illustrative sample data for demonstration purposes only. They do not reflect real accounts or live benchmarks. Analysis in the production application uses your actual uploaded bills.
+        </div>
       </div>
     </div>
   );
