@@ -931,7 +931,7 @@ const DemoPage = ({ type }) => {
 
   const bill = bills[selectedIdx];
   const r = bill.result;
-  const CARD = { background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "18px" };
+  const CARD = { background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: "10px", padding: isMobile ? "12px" : "18px", minWidth: 0, overflow: "hidden" };
 
   const openSinglePdf = () => {
     const html = buildReport(r, emptyActions, bill.id);
@@ -1048,7 +1048,7 @@ const DemoPage = ({ type }) => {
         ))}
       </div>
 
-      <div style={{ maxWidth: "1080px", margin: "0 auto", padding: isMobile ? "14px 12px" : "28px 20px" }}>
+      <div style={{ maxWidth: "1080px", margin: "0 auto", padding: isMobile ? "14px 8px" : "28px 20px", overflowX: "hidden" }}>
 
         {/* ══ TAB 1: SINGLE BILL ANALYSIS ══ */}
         {demoTab === "single" && (
@@ -1096,7 +1096,7 @@ const DemoPage = ({ type }) => {
                     { label: "Rate / Unit", v: r.ratePerUnit || r.ratePerKwh, c: "#FF9500" },
                     { label: "vs. Regional Avg", v: r.regionalComparison?.percentageDifference || "N/A", c: (r.regionalComparison?.percentageDifference || "").startsWith("+") ? "#FF3B30" : "#34C759" },
                   ].map(s => (
-                    <div key={s.label} style={{ ...CARD, minWidth: 0, overflow: "hidden" }}>
+                    <div key={s.label} style={CARD}>
                       <div style={{ fontSize: "9px", color: T.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "5px" }}>{s.label}</div>
                       <div style={{ fontFamily: "'DM Mono',monospace", fontSize: isMobile ? "15px" : "18px", fontWeight: "700", color: s.c, wordBreak: "break-word", overflowWrap: "anywhere" }}>{s.v}</div>
                     </div>
@@ -1105,7 +1105,7 @@ const DemoPage = ({ type }) => {
 
                 {/* Verification + Usage */}
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "11px", marginBottom: "11px" }}>
-                  <div style={{ ...CARD, minWidth: 0, overflow: "hidden" }}>
+                  <div style={CARD}>
                     <SecHeader icon="🔍" title="Bill Verification" T={T} />
                     <div style={{ marginBottom: "9px" }}><StatusBadge status={r.billStatus} /></div>
                     <div style={{ fontSize: "12px", color: T.textSub, lineHeight: "1.6", marginBottom: "10px", wordBreak: "break-word" }}>{r.billStatusReason}</div>
