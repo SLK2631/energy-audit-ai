@@ -991,7 +991,8 @@ const DemoPage = ({ type }) => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         html, body, #root { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; }
-        *, *::before, *::after { box-sizing: border-box !important; }
+        *, *::before, *::after { box-sizing: border-box !important; max-width: 100% !important; }
+        img, video, iframe { max-width: 100% !important; }
         *{transition:background-color .2s,border-color .2s,color .15s}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${T.scrollTrack}}::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px}
         .dtb{background:none;border:none;cursor:pointer;padding:9px 16px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.05em;transition:all .15s;color:${T.navBtn};white-space:nowrap}
@@ -1048,7 +1049,7 @@ const DemoPage = ({ type }) => {
         ))}
       </div>
 
-      <div style={{ maxWidth: "1080px", margin: "0 auto", padding: isMobile ? "14px 10px" : "28px 20px", overflowX: "hidden" }}>
+      <div style={{ maxWidth: "1080px", margin: "0 auto", padding: isMobile ? "14px 10px 14px 10px" : "28px 20px", overflowX: "hidden", width: "100%", boxSizing: "border-box" }}>
 
         {/* ══ TAB 1: SINGLE BILL ANALYSIS ══ */}
         {demoTab === "single" && (
