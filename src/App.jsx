@@ -993,6 +993,7 @@ const DemoPage = ({ type }) => {
         html, body, #root { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; }
         *, *::before, *::after { box-sizing: border-box !important; max-width: 100% !important; }
         img, video, iframe { max-width: 100% !important; }
+        [style*="grid"] > * { min-width: 0 !important; }
         *{transition:background-color .2s,border-color .2s,color .15s}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${T.scrollTrack}}::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px}
         .dtb{background:none;border:none;cursor:pointer;padding:9px 16px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.05em;transition:all .15s;color:${T.navBtn};white-space:nowrap}
@@ -1054,7 +1055,7 @@ const DemoPage = ({ type }) => {
         {/* ══ TAB 1: SINGLE BILL ANALYSIS ══ */}
         {demoTab === "single" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "240px 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "240px 1fr", gap: "16px", minWidth: 0, width: "100%" }}>
               {/* Bill selector */}
               <div>
                 <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "10px", color: "#38BDF8", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "10px", fontWeight: "700" }}>Select a Bill</div>
