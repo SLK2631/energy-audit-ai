@@ -1026,11 +1026,6 @@ const DemoPage = ({ type }) => {
         </div>
       </div>
 
-      {/* DEBUG - remove after confirming */}
-      {isMobile && <div style={{ background: "#FF3B30", color: "#fff", fontSize: "10px", fontFamily: "monospace", padding: "2px 8px", textAlign: "center", width: "100%" }}>
-        isMobile=true · innerW={typeof window !== "undefined" ? window.innerWidth : "?"} · docW={typeof document !== "undefined" ? document.documentElement.clientWidth : "?"}
-      </div>}
-
       {/* Hero Banner */}
       <div style={{ background: "linear-gradient(135deg,rgba(56,189,248,0.06),rgba(52,199,89,0.04))", borderBottom: `1px solid ${T.border}`, padding: isMobile ? "14px 16px" : "20px 24px", textAlign: "center" }}>
         <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: isMobile ? "17px" : "22px", marginBottom: "6px" }}>
@@ -1063,10 +1058,10 @@ const DemoPage = ({ type }) => {
               <div>
                 <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "10px", color: "#38BDF8", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "10px", fontWeight: "700" }}>Select a Bill</div>
                 {isMobile ? (
-                  <div style={{ display: "flex", gap: "8px", overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "6px", marginBottom: "4px" }}>
+                  <div style={{ display: "flex", gap: "8px", overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "6px", marginBottom: "4px", width: "100%", maxWidth: "100%" }}>
                     {bills.map((b, i) => (
                       <div key={b.id} onClick={() => { setSelectedIdx(i); setActiveRecTab("negotiation"); }}
-                        style={{ flexShrink: 0, background: i === selectedIdx ? "rgba(56,189,248,0.08)" : T.bgCard2, border: `1px solid ${i === selectedIdx ? "rgba(56,189,248,0.4)" : T.border}`, borderRadius: "8px", padding: "10px 12px", cursor: "pointer", minWidth: "100px", textAlign: "center" }}>
+                        style={{ flexShrink: 0, background: i === selectedIdx ? "rgba(56,189,248,0.08)" : T.bgCard2, border: `1px solid ${i === selectedIdx ? "rgba(56,189,248,0.4)" : T.border}`, borderRadius: "8px", padding: "10px 12px", cursor: "pointer", width: "88px", textAlign: "center" }}>
                         <div style={{ fontSize: "18px", marginBottom: "4px" }}>{BILL_TYPE_ICON[b.result.billType] || "⚡"}</div>
                         <div style={{ fontFamily: "monospace", fontSize: "9px", fontWeight: "700", color: billTypeColors[b.result.billType] || "#38BDF8", marginBottom: "2px" }}>{b.result.billType}</div>
                         <div style={{ fontSize: "9px", color: T.textDim }}>{shortPeriod(b.result.billingPeriod)}</div>
@@ -1092,7 +1087,7 @@ const DemoPage = ({ type }) => {
               </div>
 
               {/* Analysis panel */}
-              <div>
+              <div style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden" }}>
                 {/* Stats */}
                 <div style={{ display: isMobile ? "flex" : "grid", flexWrap: "wrap", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "9px", marginBottom: "12px" }}>
                   {[
@@ -1251,10 +1246,10 @@ const DemoPage = ({ type }) => {
               <div>
                 <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "10px", color: "#38BDF8", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "10px", fontWeight: "700" }}>Choose Bill</div>
                 {isMobile ? (
-                  <div style={{ display: "flex", gap: "8px", overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "6px", marginBottom: "4px" }}>
+                  <div style={{ display: "flex", gap: "8px", overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "6px", marginBottom: "4px", width: "100%", maxWidth: "100%" }}>
                     {bills.map((b, i) => (
                       <div key={b.id} onClick={() => setSelectedIdx(i)}
-                        style={{ flexShrink: 0, background: i === selectedIdx ? "rgba(56,189,248,0.08)" : T.bgCard2, border: `1px solid ${i === selectedIdx ? "rgba(56,189,248,0.4)" : T.border}`, borderRadius: "8px", padding: "10px 12px", cursor: "pointer", minWidth: "100px", textAlign: "center" }}>
+                        style={{ flexShrink: 0, background: i === selectedIdx ? "rgba(56,189,248,0.08)" : T.bgCard2, border: `1px solid ${i === selectedIdx ? "rgba(56,189,248,0.4)" : T.border}`, borderRadius: "8px", padding: "10px 12px", cursor: "pointer", width: "88px", textAlign: "center" }}>
                         <div style={{ fontSize: "18px", marginBottom: "4px" }}>{BILL_TYPE_ICON[b.result.billType] || "⚡"}</div>
                         <div style={{ fontFamily: "monospace", fontSize: "9px", fontWeight: "700", color: billTypeColors[b.result.billType] || "#38BDF8", marginBottom: "2px" }}>{b.result.billType}</div>
                         <div style={{ fontSize: "9px", color: T.textDim }}>{shortPeriod(b.result.billingPeriod)}</div>
