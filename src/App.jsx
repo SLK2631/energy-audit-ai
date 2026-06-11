@@ -987,11 +987,11 @@ const DemoPage = ({ type }) => {
   const billTypeColors = { ELECTRIC: "#38BDF8", GAS: "#FF9500", WATER: "#34C759", COMBINED: "#A78BFA" };
 
   return (
-    <div style={{ minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", background: T.bg, fontFamily: "'DM Sans',system-ui,sans-serif", color: T.text, transition: "background .3s,color .3s" }}>
+    <div style={{ minHeight: "100vh", width: "100vw", maxWidth: "100vw", overflowX: "hidden", background: T.bg, fontFamily: "'DM Sans',system-ui,sans-serif", color: T.text, transition: "background .3s,color .3s", boxSizing: "border-box" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
-        html, body, #root { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; margin: 0 !important; padding: 0 !important; }
-        * { box-sizing: border-box; }
+        html, body, #root { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; }
+        *, *::before, *::after { box-sizing: border-box !important; }
         *{transition:background-color .2s,border-color .2s,color .15s}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${T.scrollTrack}}::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px}
         .dtb{background:none;border:none;cursor:pointer;padding:9px 16px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.05em;transition:all .15s;color:${T.navBtn};white-space:nowrap}
@@ -1008,7 +1008,7 @@ const DemoPage = ({ type }) => {
       {pdfHtml && <PdfPreview html={pdfHtml} filename={pdfFilename} onClose={() => setPdfHtml(null)} />}
 
       {/* Topbar */}
-      <div style={{ borderBottom: `1px solid ${T.topbarBorder}`, padding: isMobile ? "10px 14px" : "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: T.topbar, zIndex: 100, backdropFilter: "blur(10px)", flexWrap: "wrap", gap: "8px" }}>
+      <div style={{ borderBottom: `1px solid ${T.topbarBorder}`, padding: isMobile ? "10px 14px" : "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: T.topbar, zIndex: 100, backdropFilter: "blur(10px)", flexWrap: "wrap", gap: "8px", width: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <img src="/logo.svg" alt="MyMeterIQ" style={{ width: "44px", height: "44px", borderRadius: "10px", boxShadow: "0 0 12px rgba(56,189,248,.5),0 2px 8px rgba(0,0,0,.4)", flexShrink: 0, border: "1px solid rgba(56,189,248,.3)" }} />
           <div>
@@ -1040,7 +1040,7 @@ const DemoPage = ({ type }) => {
       </div>
 
       {/* Demo Tab Nav */}
-      <div style={{ borderBottom: `1px solid ${T.border}`, padding: isMobile ? "0 10px" : "0 24px", background: T.topbar, display: "flex", gap: "4px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ borderBottom: `1px solid ${T.border}`, padding: isMobile ? "0 10px" : "0 24px", background: T.topbar, display: "flex", gap: "4px", overflowX: "auto", WebkitOverflowScrolling: "touch", width: "100%", boxSizing: "border-box" }}>
         {DEMO_TABS.map(t => (
           <button key={t.key} className={`dtb ${demoTab === t.key ? "dta" : ""}`} onClick={() => setDemoTab(t.key)} style={{ padding: isMobile ? "9px 10px" : undefined }}>
             {t.icon}{!isMobile && ` ${t.label}`}
