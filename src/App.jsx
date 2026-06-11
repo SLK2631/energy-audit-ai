@@ -987,9 +987,10 @@ const DemoPage = ({ type }) => {
   const billTypeColors = { ELECTRIC: "#38BDF8", GAS: "#FF9500", WATER: "#34C759", COMBINED: "#A78BFA" };
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'DM Sans',system-ui,sans-serif", color: T.text, transition: "background .3s,color .3s" }}>
+    <div style={{ minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", background: T.bg, fontFamily: "'DM Sans',system-ui,sans-serif", color: T.text, transition: "background .3s,color .3s" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        html, body, #root { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; margin: 0 !important; padding: 0 !important; }
         *{transition:background-color .2s,border-color .2s,color .15s}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${T.scrollTrack}}::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px}
         .dtb{background:none;border:none;cursor:pointer;padding:9px 16px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.05em;transition:all .15s;color:${T.navBtn};white-space:nowrap}
