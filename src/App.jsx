@@ -1033,7 +1033,7 @@ const DemoPage = ({ type }) => {
         <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: isMobile ? "17px" : "22px", marginBottom: "6px" }}>
           {isResidential ? "Residential Bill Analysis Demo" : "Commercial & Industrial Bill Analysis Demo"}
         </div>
-        <div style={{ fontSize: "11px", color: T.textSub, marginBottom: "8px" }}>{isMobile ? "Electric · Gas · Water · 6 months" : `${acct} · 6 months of Electric, Gas & Water bills`}</div>
+        <div style={{ fontSize: "11px", color: T.textSub, marginBottom: "8px" }}>{isMobile ? "Electric · Gas · Water · Sample bills" : `${acct} · Sample Electric, Gas & Water bills`}</div>
         {!isMobile && <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
           {[{ icon: "⚡", label: "Electric" }, { icon: "🔥", label: "Gas" }, { icon: "💧", label: "Water" }].map(u => (
             <span key={u.label} style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: "20px", padding: "3px 12px", fontSize: "11px", fontFamily: "monospace", color: T.textSub }}>{u.icon} {u.label}</span>
