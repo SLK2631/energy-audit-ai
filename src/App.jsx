@@ -1026,6 +1026,11 @@ const DemoPage = ({ type }) => {
         </div>
       </div>
 
+      {/* DEBUG - remove after confirming */}
+      {isMobile && <div style={{ background: "#FF3B30", color: "#fff", fontSize: "10px", fontFamily: "monospace", padding: "2px 8px", textAlign: "center", width: "100%" }}>
+        isMobile=true · innerW={typeof window !== "undefined" ? window.innerWidth : "?"} · docW={typeof document !== "undefined" ? document.documentElement.clientWidth : "?"}
+      </div>}
+
       {/* Hero Banner */}
       <div style={{ background: "linear-gradient(135deg,rgba(56,189,248,0.06),rgba(52,199,89,0.04))", borderBottom: `1px solid ${T.border}`, padding: isMobile ? "14px 16px" : "20px 24px", textAlign: "center" }}>
         <div style={{ fontFamily: "'DM Serif Display',serif", fontSize: isMobile ? "17px" : "22px", marginBottom: "6px" }}>
@@ -1089,16 +1094,16 @@ const DemoPage = ({ type }) => {
               {/* Analysis panel */}
               <div>
                 {/* Stats */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,minmax(0,1fr))" : "repeat(auto-fit,minmax(140px,1fr))", gap: "9px", marginBottom: "12px" }}>
+                <div style={{ display: isMobile ? "flex" : "grid", flexWrap: "wrap", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "9px", marginBottom: "12px" }}>
                   {[
                     { label: "Total Charged", v: r.totalCharged, c: T.text },
                     { label: "Usage", v: r.totalUsage || r.totalKwh, c: billTypeColors[r.billType] || "#38BDF8" },
                     { label: "Rate / Unit", v: r.ratePerUnit || r.ratePerKwh, c: "#FF9500" },
                     { label: "vs. Regional Avg", v: r.regionalComparison?.percentageDifference || "N/A", c: (r.regionalComparison?.percentageDifference || "").startsWith("+") ? "#FF3B30" : "#34C759" },
                   ].map(s => (
-                    <div key={s.label} style={CARD}>
+                    <div key={s.label} style={{ ...CARD, ...(isMobile ? { width: "calc(50% - 5px)", flexShrink: 0 } : {}) }}>
                       <div style={{ fontSize: "9px", color: T.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "5px" }}>{s.label}</div>
-                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: isMobile ? "15px" : "18px", fontWeight: "700", color: s.c, wordBreak: "break-word", overflowWrap: "anywhere" }}>{s.v}</div>
+                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: isMobile ? "14px" : "18px", fontWeight: "700", color: s.c, wordBreak: "break-word", overflowWrap: "anywhere" }}>{s.v}</div>
                     </div>
                   ))}
                 </div>
