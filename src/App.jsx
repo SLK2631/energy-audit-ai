@@ -1048,7 +1048,7 @@ const DemoPage = ({ type }) => {
         ))}
       </div>
 
-      <div style={{ maxWidth: "1080px", margin: "0 auto", padding: isMobile ? "14px 8px" : "28px 20px", overflowX: "hidden" }}>
+      <div style={{ maxWidth: "1080px", margin: "0 auto", padding: isMobile ? "14px 10px" : "28px 20px", overflowX: "hidden" }}>
 
         {/* ══ TAB 1: SINGLE BILL ANALYSIS ══ */}
         {demoTab === "single" && (
@@ -1108,7 +1108,7 @@ const DemoPage = ({ type }) => {
                   <div style={CARD}>
                     <SecHeader icon="🔍" title="Bill Verification" T={T} />
                     <div style={{ marginBottom: "9px" }}><StatusBadge status={r.billStatus} /></div>
-                    <div style={{ fontSize: "12px", color: T.textSub, lineHeight: "1.6", marginBottom: "10px", wordBreak: "break-word" }}>{r.billStatusReason}</div>
+                    <div style={{ fontSize: isMobile ? "11px" : "12px", color: T.textSub, lineHeight: "1.6", marginBottom: "10px", wordBreak: "break-word" }}>{r.billStatusReason}</div>
                     {(r.suspiciousCharges || []).map((c, i) => <div key={i} style={{ background: T.suspBg, border: `1px solid ${T.suspBorder}`, borderRadius: "5px", padding: "7px 10px", marginBottom: "5px", fontSize: "11px", color: "#FF6B6B", wordBreak: "break-word", overflowWrap: "anywhere" }}>🚨 {c}</div>)}
                     {(r.potentialErrors || []).map((e, i) => <div key={i} style={{ background: T.warnBg, border: `1px solid ${T.warnBorder}`, borderRadius: "5px", padding: "7px 10px", marginBottom: "5px", fontSize: "11px", color: "#FF9500", wordBreak: "break-word", overflowWrap: "anywhere" }}>⚠ {e}</div>)}
                   </div>
@@ -1118,7 +1118,7 @@ const DemoPage = ({ type }) => {
                       <span style={{ fontFamily: "'DM Mono',monospace", fontSize: "16px", fontWeight: "700", color: UC[r.usageRating] || T.text }}>{r.usageRating}</span>
                       <span style={{ fontSize: "10px", color: T.textDim }}>Usage Rating</span>
                     </div>
-                    <div style={{ fontSize: "12px", color: T.textSub, lineHeight: "1.6" }}>{r.usageRatingExplanation}</div>
+                    <div style={{ fontSize: isMobile ? "11px" : "12px", color: T.textSub, lineHeight: "1.6" }}>{r.usageRatingExplanation}</div>
                     <div style={{ marginTop: "11px", padding: "10px 12px", background: T.savingsBg, borderRadius: "7px", border: `1px solid ${T.savingsBorder}` }}>
                       <div style={{ fontSize: "9px", color: "#38BDF8", marginBottom: "3px", letterSpacing: "0.1em", fontFamily: "monospace" }}>POTENTIAL SAVINGS</div>
                       <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "17px", fontWeight: "700", color: "#34C759" }}>{r.totalPotentialMonthlySavings}</div>
