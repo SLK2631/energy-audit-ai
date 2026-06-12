@@ -12,6 +12,108 @@ const useIsMobile = () => {
 };
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
+// ─── EIA BENCHMARKS ─────────────────────────────────────────────────────────────
+// Reads the EIA benchmark JSON written daily to public Blob by /api/refresh-benchmarks.
+// Set VITE_BENCHMARKS_URL in Vercel env to the blob URL ending in /benchmarks/latest.json
+const BENCHMARKS_URL = (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_BENCHMARKS_URL) || "";
+let _benchCache = null, _benchFetchedAt = 0;
+const BENCH_TTL = 1000 * 60 * 60; // refresh hourly in-browser
+
+async function loadBenchmarks() {
+  if (_benchCache && Date.now() - _benchFetchedAt < BENCH_TTL) return _benchCache;
+  if (!BENCHMARKS_URL) return null;
+  try {
+    const res = await fetch(BENCHMARKS_URL, { cache: "no-store" });
+    if (!res.ok) return _benchCache;
+    _benchCache = await res.json();
+    _benchFetchedAt = Date.now();
+    return _benchCache;
+  } catch { return _benchCache; }
+}
+
+function formatBenchPeriod(period) {
+  if (!period || !/^\d{4}-\d{2}$/.test(period)) return period || "";
+  const [y, m] = period.split("-");
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return `${months[parseInt(m,10)-1]} ${y}`;
+}
+
+// Map app account type → EIA sector code
+function sectorForAccount(accountType) {
+  if (accountType === "RESIDENTIAL") return "RES";
+  if (accountType === "INDUSTRIAL") return "IND";
+  return "COM"; // COMMERCIAL or SMALL_BUSINESS
+}
+
+// Parse a numeric rate out of strings like "$0.1263 per kWh" or "$1.421 per therm"
+function parseRate(rateStr) {
+  if (!rateStr) return null;
+  const m = String(rateStr).match(/([\d.]+)/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+// Given an analyzed bill result + account type, look up EIA benchmark and return
+// a sourced regionalComparison object, or null if no benchmark available.
+function buildEiaComparison(benchmarks, result, accountType) {
+  if (!benchmarks || !result) return null;
+  const state = (result.serviceState || "").toUpperCase();
+  const fuel = result.billType;
+  if (!state || state.length !== 2) return null;
+  if (fuel !== "ELECTRIC" && fuel !== "GAS") return null; // EIA has no water
+
+  const block = fuel === "ELECTRIC" ? benchmarks.electricity : benchmarks.gas;
+  if (!block) return null;
+  const sector = sectorForAccount(accountType);
+  const benchValue = block.byState?.[state]?.[sector];
+  if (benchValue == null) return null;
+
+  // Bill's rate is in $/unit for electricity ($0.1263/kWh) but EIA electricity is cents/kWh.
+  // Gas: bill is $/therm, EIA gas is $/therm — same unit.
+  let actualRate = parseRate(result.ratePerUnit);
+  if (actualRate == null) return null;
+
+  let benchInBillUnit = benchValue;
+  let unitLabel;
+  if (fuel === "ELECTRIC") {
+    // EIA gives cents/kWh → convert to $/kWh to match the bill
+    benchInBillUnit = benchValue / 100;
+    unitLabel = "$/kWh";
+  } else {
+    unitLabel = "$/therm";
+  }
+
+  const pct = Math.round(((actualRate - benchInBillUnit) / benchInBillUnit) * 100);
+  const direction = pct > 0 ? "above" : pct < 0 ? "below" : "at";
+  const sign = pct > 0 ? "+" : "";
+  const period = block.period;
+  const citation = `${benchmarks.source}, ${formatBenchPeriod(period)}`;
+
+  return {
+    yourRate: `$${actualRate.toFixed(fuel === "ELECTRIC" ? 4 : 3)} ${unitLabel}`,
+    regionalAverage: `$${benchInBillUnit.toFixed(fuel === "ELECTRIC" ? 4 : 3)} ${unitLabel}`,
+    percentageDifference: pct === 0 ? "At regional average" : `${sign}${pct}% ${direction} average`,
+    comparisonNote: `Your effective rate vs. the ${state} ${sector === "RES" ? "residential" : sector === "IND" ? "industrial" : "commercial"} average. Source: ${citation}.`,
+    source: citation,
+    isEiaSourced: true,
+  };
+}
+
+// Enrich an analyzed result in place with real EIA comparison (falls back to AI's own if none)
+async function enrichWithBenchmark(result, accountType) {
+  try {
+    const benchmarks = await loadBenchmarks();
+    const eia = buildEiaComparison(benchmarks, result, accountType);
+    if (eia) {
+      result.regionalComparison = {
+        ...(result.regionalComparison || {}),
+        ...eia,
+      };
+    }
+  } catch { /* keep AI's own comparison on any failure */ }
+  return result;
+}
+
+
 // ─── SYSTEM PROMPT ─────────────────────────────────────────────────────────────
 const buildSystemPrompt = (ctx={}) => {
   const {accountType="RESIDENTIAL", householdSize="", facilitySize=""} = ctx;
@@ -83,6 +185,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 {
   "billType":"ELECTRIC|GAS|WATER|COMBINED",
   "provider":"utility company name or Unknown","accountNumber":"account number or N/A",
+  "serviceState":"2-letter US state code from the service/billing address (e.g. NC, CA, TX) or null if not found",
   "billingPeriod":"billing period dates or N/A","totalCharged":"$XXX.XX",
   "totalUsage":"XXX kWh or XXX therms or XXX gallons — use correct unit",
   "ratePerUnit":"$X.XXX per kWh / therm / CCF / gallon — use correct unit",
@@ -343,7 +446,7 @@ function buildReport(d, completedActions, billId) {
   <div class="body">
   <div class="pri"><div class="pl">★ Priority Action</div><div class="pt">${escHtml(d.priorityAction)}</div></div>
   <div class="sec"><div class="st">Bill Summary</div><div class="g3"><div class="stat"><div class="sl">Total Charged</div><div class="sv">${escHtml(d.totalCharged)}</div></div><div class="stat"><div class="sl">Usage</div><div class="sv">${escHtml(d.totalUsage||d.totalKwh)}</div></div><div class="stat"><div class="sl">Rate/Unit</div><div class="sv">${escHtml(d.ratePerUnit||d.ratePerKwh)}</div></div></div></div>
-  <div class="sec"><div class="st">Regional Comparison</div><div class="g3"><div class="stat"><div class="sl">Your Bill</div><div class="sv">${escHtml(d.regionalComparison?.yourBill||'N/A')}</div></div><div class="stat"><div class="sl">Regional Avg</div><div class="sv" style="color:#059669">${escHtml(d.regionalComparison?.regionalAverage||'N/A')}</div></div><div class="stat"><div class="sl">Difference</div><div class="sv" style="color:${(d.regionalComparison?.percentageDifference||'+0%').startsWith('+')?'#dc2626':'#059669'}">${d.regionalComparison?.percentageDifference||'N/A'}</div></div></div></div>
+  <div class="sec"><div class="st">Regional Comparison</div><div class="g3"><div class="stat"><div class="sl">${d.regionalComparison?.isEiaSourced?'Your Rate':'Your Bill'}</div><div class="sv">${escHtml(d.regionalComparison?.isEiaSourced?(d.regionalComparison?.yourRate||'N/A'):(d.regionalComparison?.yourBill||'N/A'))}</div></div><div class="stat"><div class="sl">Regional Avg</div><div class="sv" style="color:#059669">${escHtml(d.regionalComparison?.regionalAverage||'N/A')}</div></div><div class="stat"><div class="sl">Difference</div><div class="sv" style="color:${(d.regionalComparison?.percentageDifference||'+0%').startsWith('+')?'#dc2626':'#059669'}">${escHtml(d.regionalComparison?.percentageDifference||'N/A')}</div></div></div>${d.regionalComparison?.isEiaSourced?`<div style="font-size:9px;color:#94a3b8;margin-top:8px">Source: ${escHtml(d.regionalComparison?.source||'')}</div>`:''}</div>
   <div class="sec">
   <div class="sv2" style="margin-bottom:18px">
     <div><div class="sv2l">Monthly Savings Potential</div><div class="sv2v">${escHtml(d.totalPotentialMonthlySavings)}</div></div>
@@ -1458,7 +1561,9 @@ export default function App() {
     if(data.error) throw new Error(data.error.message);
     const text = data.content?.find(b=>b.type==="text")?.text||"";
     if(!text) throw new Error("Empty response");
-    return JSON.parse(text.replace(/```json|```/g,"").trim());
+    const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
+    await enrichWithBenchmark(parsed, accountType);
+    return parsed;
   };
 
   // Bulk analyze up to 12 files sequentially
@@ -2081,14 +2186,21 @@ export default function App() {
               </div>
             </div>
 
-            {/* Priority */}
-            <div style={{background:T.prioBg,border:`1px solid ${T.prioBorder}`,borderRadius:"9px",padding:"14px 16px",marginBottom:"12px",display:"flex",gap:"11px",alignItems:"flex-start"}}>
-              <span style={{fontSize:"16px"}}>★</span>
-              <div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:"9px",color:"#38BDF8",letterSpacing:"0.12em",marginBottom:"4px"}}>PRIORITY ACTION — DO THIS FIRST</div>
-                <div style={{fontSize:"13px",color:T.text,lineHeight:"1.6"}}>{r.priorityAction}</div>
+            {/* EIA Benchmark Citation — shown when comparison is sourced from real EIA data */}
+            {r.regionalComparison?.isEiaSourced && (
+              <div style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"9px",padding:"12px 14px",marginBottom:"12px",display:"flex",gap:"10px",alignItems:"flex-start"}}>
+                <span style={{fontSize:"14px"}}>📊</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:"9px",color:"#38BDF8",letterSpacing:"0.1em",marginBottom:"5px"}}>RATE BENCHMARK</div>
+                  <div style={{display:"flex",gap:"16px",flexWrap:"wrap",marginBottom:"6px"}}>
+                    <div><span style={{fontSize:"10px",color:T.textDim}}>Your rate: </span><span style={{fontFamily:"monospace",fontSize:"12px",fontWeight:"700",color:T.text}}>{r.regionalComparison.yourRate}</span></div>
+                    <div><span style={{fontSize:"10px",color:T.textDim}}>Regional avg: </span><span style={{fontFamily:"monospace",fontSize:"12px",fontWeight:"700",color:"#34C759"}}>{r.regionalComparison.regionalAverage}</span></div>
+                    <div><span style={{fontSize:"10px",color:T.textDim}}>Difference: </span><span style={{fontFamily:"monospace",fontSize:"12px",fontWeight:"700",color:r.regionalComparison.percentageDifference?.startsWith("+")?"#FF3B30":"#34C759"}}>{r.regionalComparison.percentageDifference}</span></div>
+                  </div>
+                  <div style={{fontSize:"9px",color:T.textFaint}}>Source: {r.regionalComparison.source}</div>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Tabs + recs */}
             <div style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"10px",overflow:"hidden",marginBottom:"4px"}}>
