@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { supabase } from "./lib/supabaseClient";
 
 // ─── MOBILE HOOK ──────────────────────────────────────────────────────────────── v10
 const useIsMobile = () => {
@@ -1489,9 +1490,95 @@ const TABS=[
 
 export default function App() {
   const isMobile = useIsMobile();
-  const [authed, setAuthed] = useState(()=>localStorage.getItem("ea-auth")===ACCESS_CODE);
-  const [codeInput, setCodeInput] = useState("");
-  const [codeError, setCodeError] = useState(false);
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
+  const [authMode, setAuthMode] = useState("signin"); // signin | signup | forgot
+
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [newPassword2, setNewPassword2] = useState("");
+  const [recoveryError, setRecoveryError] = useState("");
+  const [recoveryMessage, setRecoveryMessage] = useState("");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (_event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const isStrongPassword = (pw) => {
+    if (pw.length < 8) return "Password must be at least 8 characters.";
+    if (!/[A-Z]/.test(pw)) return "Password must include at least one capital letter.";
+    if (!/[!@#$%^&*(),.?":{}|<>_\-\[\]\\/;'`~+=]/.test(pw)) return "Password must include at least one special character.";
+    return null;
+  };
+
+  const handleSetNewPassword = async () => {
+    setRecoveryError("");
+    setRecoveryMessage("");
+    if (newPassword !== newPassword2) {
+      setRecoveryError("Passwords don't match.");
+      return;
+    }
+    const strengthError = isStrongPassword(newPassword);
+    if (strengthError) {
+      setRecoveryError(strengthError);
+      return;
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setRecoveryError(error.message);
+    } else {
+      setRecoveryMessage("Password updated. You're all set.");
+      setTimeout(() => setPasswordRecovery(false), 1500);
+    }
+  };
+
+  const handleAuth = async () => {
+    setAuthError("");
+    setAuthMessage("");
+    if (authMode === "forgot") {
+      if (!authEmail.trim()) {
+        setAuthError("Enter your email address.");
+        return;
+      }
+      const { error } = await supabase.auth.resetPasswordForEmail(authEmail.trim(), {
+        redirectTo: window.location.origin,
+      });
+      if (error) setAuthError(error.message);
+      else setAuthMessage("Password reset email sent — check your inbox.");
+      return;
+    }
+    if (!authEmail.trim() || !authPassword.trim()) {
+      setAuthError("Enter both email and password.");
+      return;
+    }
+    if (authMode === "signup") {
+      const strengthError = isStrongPassword(authPassword);
+      if (strengthError) {
+        setAuthError(strengthError);
+        return;
+      }
+    }
+    const { error } = authMode === "signin"
+      ? await supabase.auth.signInWithPassword({ email: authEmail.trim(), password: authPassword })
+      : await supabase.auth.signUp({ email: authEmail.trim(), password: authPassword });
+    if (error) {
+      setAuthError(error.message);
+    } else if (authMode === "signup") {
+      setAuthMessage("Check your email to confirm your account, then sign in.");
+    }
+  };
   const [darkMode, setDarkMode] = useState(true);
   const T = darkMode ? DARK : LIGHT;
   const [view, setView] = useState("analyze"); // analyze | history | tracker | detail | compare
@@ -1705,29 +1792,102 @@ export default function App() {
     return <DemoPage type="commercial" />;
   }
 
-  if(!authed) return (
+  if(authLoading) return (
+    <div style={{minHeight:"100vh",background:"#07070f",display:"flex",alignItems:"center",justifyContent:"center"}}></div>
+  );
+
+  if(passwordRecovery) return (
+    <div style={{minHeight:"100vh",background:"#07070f",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{background:"#0D1117",border:"1px solid #1A2235",borderRadius:"16px",padding:"48px 40px",width:"100%",maxWidth:"380px",textAlign:"center"}}>
+        <div style={{width:"52px",height:"52px",background:"linear-gradient(135deg,#0D2035,#0a1a2e)",border:"1px solid #38BDF8",borderRadius:"12px",margin:"0 auto 24px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"22px"}}>🔒</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:"10px",letterSpacing:"0.15em",color:"#38BDF8",marginBottom:"8px",textTransform:"uppercase"}}>MyMeterIQ</div>
+        <div style={{fontSize:"22px",fontWeight:"700",color:"#E8EAF0",marginBottom:"8px"}}>Set New Password</div>
+        <div style={{fontSize:"13px",color:"#6B7A9A",marginBottom:"28px",lineHeight:"1.5"}}>Choose a new password for your account.</div>
+        <input
+          value={newPassword}
+          onChange={e=>setNewPassword(e.target.value)}
+          type="password"
+          placeholder="New password"
+          style={{width:"100%",background:"#07070f",border:"1px solid #1A2235",borderRadius:"8px",padding:"12px 16px",color:"#E8EAF0",fontSize:"14px",fontFamily:"'DM Mono',monospace",outline:"none",boxSizing:"border-box",marginBottom:"12px"}}
+          autoFocus
+        />
+        <input
+          value={newPassword2}
+          onChange={e=>setNewPassword2(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter")handleSetNewPassword();}}
+          type="password"
+          placeholder="Confirm new password"
+          style={{width:"100%",background:"#07070f",border:"1px solid #1A2235",borderRadius:"8px",padding:"12px 16px",color:"#E8EAF0",fontSize:"14px",fontFamily:"'DM Mono',monospace",outline:"none",boxSizing:"border-box",marginBottom:"8px"}}
+        />
+        <div style={{fontSize:"11px",color:"#6B7A9A",textAlign:"left",marginBottom:"12px"}}>8+ characters, 1 capital letter, 1 special character.</div>
+        {recoveryError && <div style={{fontSize:"12px",color:"#FF3B30",marginBottom:"12px"}}>{recoveryError}</div>}
+        {recoveryMessage && <div style={{fontSize:"12px",color:"#38BDF8",marginBottom:"12px"}}>{recoveryMessage}</div>}
+        <button
+          onClick={handleSetNewPassword}
+          style={{width:"100%",background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",borderRadius:"8px",padding:"13px",color:"#040d18",fontSize:"14px",fontWeight:"700",cursor:"pointer",fontFamily:"inherit"}}
+        >
+          Update Password
+        </button>
+      </div>
+    </div>
+  );
+
+  if(!session) return (
     <div style={{minHeight:"100vh",background:"#07070f",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}>
       <div style={{background:"#0D1117",border:"1px solid #1A2235",borderRadius:"16px",padding:"48px 40px",width:"100%",maxWidth:"380px",textAlign:"center"}}>
         <div style={{width:"52px",height:"52px",background:"linear-gradient(135deg,#0D2035,#0a1a2e)",border:"1px solid #38BDF8",borderRadius:"12px",margin:"0 auto 24px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"22px"}}>⚡</div>
         <div style={{fontFamily:"'DM Mono',monospace",fontSize:"10px",letterSpacing:"0.15em",color:"#38BDF8",marginBottom:"8px",textTransform:"uppercase"}}>MyMeterIQ</div>
-        <div style={{fontSize:"22px",fontWeight:"700",color:"#E8EAF0",marginBottom:"8px"}}>Access Required</div>
-        <div style={{fontSize:"13px",color:"#6B7A9A",marginBottom:"28px",lineHeight:"1.5"}}>This tool is for authorized clients only. Enter your access code to continue.</div>
+        <div style={{fontSize:"22px",fontWeight:"700",color:"#E8EAF0",marginBottom:"8px"}}>
+          {authMode==="signin"?"Sign In":authMode==="signup"?"Create Account":"Reset Password"}
+        </div>
+        <div style={{fontSize:"13px",color:"#6B7A9A",marginBottom:"28px",lineHeight:"1.5"}}>
+          {authMode==="signin"?"Sign in to analyze your utility bills.":authMode==="signup"?"Create an account to get started.":"Enter your email and we'll send you a reset link."}
+        </div>
         <input
-          value={codeInput}
-          onChange={e=>{setCodeInput(e.target.value);setCodeError(false);}}
-          onKeyDown={e=>{if(e.key==="Enter"){if(codeInput.trim()===ACCESS_CODE){localStorage.setItem("ea-auth",ACCESS_CODE);setAuthed(true);}else{setCodeError(true);setCodeInput("");}}}}
-          type="password"
-          placeholder="Enter access code"
-          style={{width:"100%",background:"#07070f",border:`1px solid ${codeError?"#FF3B30":"#1A2235"}`,borderRadius:"8px",padding:"12px 16px",color:"#E8EAF0",fontSize:"14px",fontFamily:"'DM Mono',monospace",outline:"none",boxSizing:"border-box",marginBottom:"12px",textAlign:"center",letterSpacing:"0.1em"}}
+          value={authEmail}
+          onChange={e=>setAuthEmail(e.target.value)}
+          type="email"
+          placeholder="Email"
+          style={{width:"100%",background:"#07070f",border:"1px solid #1A2235",borderRadius:"8px",padding:"12px 16px",color:"#E8EAF0",fontSize:"14px",fontFamily:"'DM Mono',monospace",outline:"none",boxSizing:"border-box",marginBottom:"12px"}}
           autoFocus
         />
-        {codeError&&<div style={{fontSize:"12px",color:"#FF3B30",marginBottom:"12px"}}>Incorrect code — contact us to request access.</div>}
+        {authMode!=="forgot" && (
+          <>
+            <input
+              value={authPassword}
+              onChange={e=>setAuthPassword(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter")handleAuth();}}
+              type="password"
+              placeholder="Password"
+              style={{width:"100%",background:"#07070f",border:"1px solid #1A2235",borderRadius:"8px",padding:"12px 16px",color:"#E8EAF0",fontSize:"14px",fontFamily:"'DM Mono',monospace",outline:"none",boxSizing:"border-box",marginBottom:"8px"}}
+            />
+            {authMode==="signup" && (
+              <div style={{fontSize:"11px",color:"#6B7A9A",textAlign:"left",marginBottom:"12px"}}>8+ characters, 1 capital letter, 1 special character.</div>
+            )}
+          </>
+        )}
+        {authError && <div style={{fontSize:"12px",color:"#FF3B30",marginBottom:"12px"}}>{authError}</div>}
+        {authMessage && <div style={{fontSize:"12px",color:"#38BDF8",marginBottom:"12px"}}>{authMessage}</div>}
         <button
-          onClick={()=>{if(codeInput.trim()===ACCESS_CODE){localStorage.setItem("ea-auth",ACCESS_CODE);setAuthed(true);}else{setCodeError(true);setCodeInput("");} }}
-          style={{width:"100%",background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",borderRadius:"8px",padding:"13px",color:"#040d18",fontSize:"14px",fontWeight:"700",cursor:"pointer",fontFamily:"inherit"}}
+          onClick={handleAuth}
+          style={{width:"100%",background:"linear-gradient(135deg,#38BDF8,#0EA5E9)",border:"none",borderRadius:"8px",padding:"13px",color:"#040d18",fontSize:"14px",fontWeight:"700",cursor:"pointer",fontFamily:"inherit",marginTop: authMode==="forgot"?"12px":"0"}}
         >
-          Enter
+          {authMode==="signin"?"Sign In":authMode==="signup"?"Sign Up":"Send Reset Link"}
         </button>
+        {authMode==="signin" && (
+          <div
+            onClick={()=>{setAuthMode("forgot");setAuthError("");setAuthMessage("");}}
+            style={{marginTop:"14px",fontSize:"12px",color:"#6B7A9A",cursor:"pointer"}}
+          >
+            Forgot password?
+          </div>
+        )}
+        <div
+          onClick={()=>{setAuthMode(authMode==="signin"?"signup":"signin");setAuthError("");setAuthMessage("");}}
+          style={{marginTop:"12px",fontSize:"12px",color:"#38BDF8",cursor:"pointer"}}
+        >
+          {authMode==="signup"?"Have an account? Sign in":authMode==="forgot"?"Back to sign in":"Need an account? Sign up"}
+        </div>
         <div style={{marginTop:"20px",fontSize:"11px",color:"#2A3550"}}>mymeteriq.com</div>
       </div>
     </div>
@@ -1784,6 +1944,14 @@ export default function App() {
         </nav>
 
         <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+
+          <button
+            onClick={()=>supabase.auth.signOut()}
+            title={session?.user?.email || "Sign out"}
+            style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"18px",padding:"5px 11px",cursor:"pointer",fontSize:"12px",display:"flex",alignItems:"center",gap:"5px",color:T.textSub}}
+          >
+            🚪 Sign Out
+          </button>
 
           <button onClick={()=>setDarkMode(d=>!d)} style={{background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"18px",padding:"5px 11px",cursor:"pointer",fontSize:"12px",display:"flex",alignItems:"center",gap:"5px",color:T.textSub}}>
             {darkMode?"☀ Light":"🌙 Dark"}
