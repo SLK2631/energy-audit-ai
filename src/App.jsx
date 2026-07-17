@@ -711,7 +711,7 @@ const BillChat = ({billResult, T, ctx={}}) => {
     const newMsgs=[...history,{role:"user",content:q}];
     setMessages(p=>[...p,{role:"user",content:q}]); setLoading(true);
     try {
-      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:buildChatPrompt(billResult,ctx),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})});
+      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:buildChatPrompt(billResult,ctx),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})});
       if(!res.ok) throw new Error(`Server error ${res.status}`);
       const data=await res.json();
       if(data.error) throw new Error(data.error.message);
@@ -1641,7 +1641,7 @@ export default function App() {
     const res = await fetch("/api/chat", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:8000,system:buildSystemPrompt({accountType,householdSize,facilitySize}),messages:[{role:"user",content:blocks}]})
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:8000,system:buildSystemPrompt({accountType,householdSize,facilitySize}),messages:[{role:"user",content:blocks}]})
     });
     if(!res.ok) throw new Error(`API error ${res.status} — please try again`);
     const data = await res.json();
