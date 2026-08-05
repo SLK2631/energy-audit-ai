@@ -671,7 +671,8 @@ const TrendKPIs = ({bills, completedActions, T}) => {
   const cd=bills.length>1?parseNum(s[s.length-1].result.totalCharged)-parseNum(s[0].result.totalCharged):0;
   const kd=bills.length>1?parseNum(s[s.length-1].result.totalUsage||s[s.length-1].result.totalKwh)-parseNum(s[0].result.totalUsage||s[0].result.totalKwh):0;
   const billTypes=new Set(bills.map(b=>b.result.billType).filter(Boolean));
-  const usageUnit=billTypes.size===1?({ELECTRIC:"kWh",GAS:"therms",WATER:"gallons",COMBINED:"units"}[[...billTypes][0]]||"units"):"units";
+  const sameType=billTypes.size===1;
+  const usageUnit=sameType?({ELECTRIC:"kWh",GAS:"therms",WATER:"gallons",COMBINED:"units"}[[...billTypes][0]]||"units"):"units";
   const susp=bills.filter(b=>b.result.billStatus==="SUSPICIOUS").length;
   const savLow=bills.reduce((x,b)=>x+Math.min(parseNum(b.result.totalPotentialMonthlySavings?.split("–")[0]),parseNum(b.result.totalCharged)),0);
   const completed=completedActions.size;
@@ -680,8 +681,8 @@ const TrendKPIs = ({bills, completedActions, T}) => {
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:"10px",marginBottom:"22px"}}>
       {[
         {label:"Avg Monthly Bill",v:`$${avg.toFixed(2)}`,c:T.text,note:`${bills.length} bill${bills.length>1?"s":""} tracked`},
-        {label:"Cost Trend",v:bills.length>1?(cd>=0?`+$${cd.toFixed(2)}`:`-$${Math.abs(cd).toFixed(2)}`):"—",c:cd>10?"#FF3B30":cd<-10?"#34C759":"#FF9500",note:"first → latest"},
-        {label:"Usage Trend",v:bills.length>1?(kd>=0?`+${kd.toFixed(0)}`:`-${Math.abs(kd).toFixed(0)}`)+` ${usageUnit}`:"—",c:(()=>{const thresh=usageUnit==="gallons"?500:usageUnit==="therms"?10:50;return kd>thresh?"#FF9500":kd<-thresh?"#34C759":T.textSub;})(),note:"first → latest"},
+        {label:"Cost Trend",v:(bills.length>1&&sameType)?(cd>=0?`+$${cd.toFixed(2)}`:`-$${Math.abs(cd).toFixed(2)}`):"—",c:(bills.length>1&&sameType)?(cd>10?"#FF3B30":cd<-10?"#34C759":"#FF9500"):T.textDim,note:(bills.length>1&&sameType)?"first → latest":"select 2+ same-utility bills"},
+        {label:"Usage Trend",v:(bills.length>1&&sameType)?(kd>=0?`+${kd.toFixed(0)}`:`-${Math.abs(kd).toFixed(0)}`)+` ${usageUnit}`:"—",c:(bills.length>1&&sameType)?(()=>{const thresh=usageUnit==="gallons"?500:usageUnit==="therms"?10:50;return kd>thresh?"#FF9500":kd<-thresh?"#34C759":T.textSub;})():T.textDim,note:(bills.length>1&&sameType)?"first → latest":"select 2+ same-utility bills"},
         {label:"Flagged Bills",v:`${susp}/${bills.length}`,c:susp>0?"#FF3B30":"#34C759",note:susp>0?"need attention":"all clear"},
 
       ].map(x=>(
@@ -1610,15 +1611,37 @@ export default function App() {
   const bulkInputRef = useRef();
   const CARD = {background:T.bgCard,border:`1px solid ${T.border}`,borderRadius:"10px",padding:"18px"};
 
-  // Load from storage
+  // Load local preferences (dark mode, completed actions) from storage
   useEffect(()=>{
     (async()=>{
-      try{const v=localStorage.getItem("ea-bills");if(v)setBills(JSON.parse(v));}catch(_){}
       try{const v=localStorage.getItem("ea-dark");if(v!==null)setDarkMode(JSON.parse(v));}catch(_){}
       try{const v=localStorage.getItem("ea-completed");if(v)setCompletedActions(new Set(JSON.parse(v)));}catch(_){}
       setStorageReady(true);
     })();
   },[]);
+
+  // Load this user's bills from Supabase once signed in
+  useEffect(()=>{
+    if(!session?.user) return;
+    (async()=>{
+      try {
+        const { data, error } = await supabase
+          .from("bills")
+          .select("id, uploaded_at, utility_type, analyses(result, is_eia_sourced)")
+          .order("uploaded_at", {ascending:true});
+        if (error) throw error;
+        const loaded = (data||[]).map(row => ({
+          id: row.id,
+          analyzedAt: row.uploaded_at,
+          result: row.analyses?.[0]?.result || {},
+          context: {},
+        })).filter(b => b.result && Object.keys(b.result).length > 0);
+        if (loaded.length > 0) setBills(loaded);
+      } catch (e) {
+        console.error("Failed to load bills from Supabase:", e);
+      }
+    })();
+  },[session?.user?.id]);
 
   useEffect(()=>{ if(!storageReady)return; (async()=>{try{localStorage.setItem("ea-bills",JSON.stringify(bills));}catch(_){}})(); },[bills,storageReady]);
   useEffect(()=>{ if(!storageReady)return; (async()=>{try{localStorage.setItem("ea-dark",JSON.stringify(darkMode));}catch(_){}})(); },[darkMode,storageReady]);
@@ -1653,6 +1676,41 @@ export default function App() {
     return parsed;
   };
 
+  // Upload a bill file + save its analysis to Supabase (bills + analyses tables)
+  const saveBillToSupabase = async (file, nb) => {
+    if (!session?.user) return null;
+    try {
+      const filePath = `${session.user.id}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("bills").upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data: billRow, error: billError } = await supabase
+        .from("bills")
+        .insert({
+          user_id: session.user.id,
+          file_path: filePath,
+          utility_type: (nb.result.billType || "ELECTRIC").toLowerCase(),
+          sector: accountType,
+        })
+        .select()
+        .single();
+      if (billError) throw billError;
+
+      const { error: analysisError } = await supabase.from("analyses").insert({
+        bill_id: billRow.id,
+        user_id: session.user.id,
+        result: nb.result,
+        is_eia_sourced: !!nb.result.isEiaSourced,
+      });
+      if (analysisError) throw analysisError;
+
+      return billRow.id;
+    } catch (e) {
+      console.error("Failed to save bill to Supabase:", e);
+      return null;
+    }
+  };
+
   // Bulk analyze up to 12 files sequentially
   const bulkAnalyze = async () => {
     if(!bulkFiles.length || bulkRunning) return;
@@ -1667,6 +1725,7 @@ export default function App() {
         const parsed = await analyzeSingleFile(bulkFiles[i]);
         const nb = {id:`bill-${Date.now()}-${i}`, analyzedAt:new Date().toISOString(), result:{...parsed, billType:parsed.billType?parsed.billType.toUpperCase():parsed.billType}, context:{accountType,householdSize,facilitySize}};
         newBills.push(nb);
+        saveBillToSupabase(bulkFiles[i], nb);
         progress[i] = {...progress[i], status:"done", result:parsed};
       } catch(e) {
         progress[i] = {...progress[i], status:"error", error:e.message||"Failed"};
@@ -1694,6 +1753,7 @@ export default function App() {
       const parsed = await analyzeSingleFile(file);
       if(parsed.billType) parsed.billType=parsed.billType.toUpperCase();
       const nb={id:`bill-${Date.now()}`,analyzedAt:new Date().toISOString(),result:parsed,context:{accountType,householdSize,facilitySize}};
+      saveBillToSupabase(file, nb);
       setBills(p=>[...p,nb]); setSelectedBill(nb); setActiveTab("negotiation");
       setShowChat(false); setView("detail"); setFile(null); setImageDataUrl(null);
     } catch(e) { setError("Analysis failed — "+(e.message||"Please try again.")); }
@@ -1744,9 +1804,19 @@ export default function App() {
   };
 
   const loadDemo = ()=>{ setBills(DEMO_BILLS); setView("history"); };
-  const deleteBill = (id)=>{ setBills(p=>p.filter(b=>b.id!==id)); if(selectedBill?.id===id){setSelectedBill(null);setView("history");} };
-  const deleteSelected = ()=>{ if(!window.confirm(`Delete ${deleteIds.size} selected bill${deleteIds.size>1?'s':''}? This cannot be undone.`)) return; if(selectedBill && deleteIds.has(selectedBill.id)){setSelectedBill(null);setView("history");} setBills(p=>p.filter(b=>!deleteIds.has(b.id))); setDeleteIds(new Set()); setDeleteMode(false); };
-  const deleteAll = ()=>{ if(window.confirm("Delete all bills? This cannot be undone.")){setBills([]); setDeleteIds(new Set()); setDeleteMode(false); setCompareIds(new Set()); setSelectedBill(null); setView("analyze");} };
+  const deleteBillFromSupabase = async (ids) => {
+    if (!session?.user) return;
+    try {
+      await supabase.from("analyses").delete().in("bill_id", ids);
+      await supabase.from("bills").delete().in("id", ids);
+    } catch (e) {
+      console.error("Failed to delete bill(s) from Supabase:", e);
+    }
+  };
+
+  const deleteBill = (id)=>{ setBills(p=>p.filter(b=>b.id!==id)); if(selectedBill?.id===id){setSelectedBill(null);setView("history");} deleteBillFromSupabase([id]); };
+  const deleteSelected = ()=>{ if(!window.confirm(`Delete ${deleteIds.size} selected bill${deleteIds.size>1?'s':''}? This cannot be undone.`)) return; if(selectedBill && deleteIds.has(selectedBill.id)){setSelectedBill(null);setView("history");} const ids=[...deleteIds]; setBills(p=>p.filter(b=>!deleteIds.has(b.id))); setDeleteIds(new Set()); setDeleteMode(false); deleteBillFromSupabase(ids); };
+  const deleteAll = ()=>{ if(window.confirm("Delete all bills? This cannot be undone.")){ const ids=bills.map(b=>b.id); setBills([]); setDeleteIds(new Set()); setDeleteMode(false); setCompareIds(new Set()); setSelectedBill(null); setView("analyze"); deleteBillFromSupabase(ids); } };
   const toggleDeleteMode = ()=>{ setDeleteMode(m=>!m); setDeleteIds(new Set()); };
   const openBill = (bill)=>{ setSelectedBill(bill); setActiveTab("negotiation"); setShowChat(false); setView("detail"); };
   // HTML fallback (used if PDF fails)
@@ -1773,6 +1843,7 @@ export default function App() {
   }));
   const billTypesApp=new Set(validBills.map(b=>b.result.billType).filter(Boolean));
   const usageUnit=billTypesApp.size===1?({ELECTRIC:"kWh",GAS:"therms",WATER:"gallons",COMBINED:"units"}[[...billTypesApp][0]]||"units"):"units";
+  const sameTypeApp=billTypesApp.size===1;
 
 
   const r = selectedBill?.result;
@@ -2177,9 +2248,9 @@ export default function App() {
                 {bills.length>=2&&(
                   <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"14px",marginBottom:"18px"}}>
                     {[
-                      {title:"Monthly Cost ($)",height:165,el:<LineChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9), dataMax=>dataMax===0?10:Math.ceil(dataMax*1.05)]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Cost" stroke="#38BDF8" strokeWidth={2} dot={{fill:"#38BDF8",r:4,strokeWidth:0}} activeDot={{r:6}} name="Cost"/></LineChart>},
+                      {title:"Monthly Cost ($)",height:165,hidden:!sameTypeApp,el:<LineChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>`$${v}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9), dataMax=>dataMax===0?10:Math.ceil(dataMax*1.05)]}/><Tooltip content={<ChartTip T={T}/>}/><Line type="monotone" dataKey="Cost" stroke="#38BDF8" strokeWidth={2} dot={{fill:"#38BDF8",r:4,strokeWidth:0}} activeDot={{r:6}} name="Cost"/></LineChart>},
                       {title:`Monthly Usage (${usageUnit})`,height:165,hidden:usageUnit==="units",el:<BarChart data={chartData} margin={{top:5,right:8,left:-22,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}}/><Tooltip content={<ChartTip T={T} usageUnit={usageUnit}/>}/>{usageUnit==="kWh"&&chartData.some(d=>d.billType==="ELECTRIC"||!d.billType)&&<ReferenceLine y={899} stroke={T.refLine} strokeDasharray="4 4" label={{value:"US avg",position:"insideTopRight",fill:T.textDim,fontSize:9}}/>}<Bar dataKey="kWh" fill="#38BDF8" opacity={0.75} radius={[3,3,0,0]} name={usageUnit}/></BarChart>},
-                      {title:`Rate per ${usageUnit} ($)`,height:150,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>v<0.01?`$${v.toFixed(4)}`:v<0.1?`$${v.toFixed(3)}`:`$${v.toFixed(2)}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9*10000)/10000, dataMax=>dataMax===0?1:Math.ceil(dataMax*1.05*10000)/10000]}/><Tooltip content={<ChartTip T={T} usageUnit={`/${usageUnit}`}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
+                      {title:`Rate per ${usageUnit} ($)`,height:150,hidden:!sameTypeApp,el:<LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:5}}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:9,fill:T.chartTick}}/><YAxis tick={{fontSize:9,fill:T.chartTick}} tickFormatter={v=>v<0.01?`$${v.toFixed(4)}`:v<0.1?`$${v.toFixed(3)}`:`$${v.toFixed(2)}`} domain={[dataMin=>dataMin===0?0:Math.floor(dataMin*0.9*10000)/10000, dataMax=>dataMax===0?1:Math.ceil(dataMax*1.05*10000)/10000]}/><Tooltip content={<ChartTip T={T} usageUnit={`/${usageUnit}`}/>}/><Line type="monotone" dataKey="Rate" stroke="#FF9500" strokeWidth={2} dot={{fill:"#FF9500",r:4,strokeWidth:0}} name="Rate"/></LineChart>},
                     ].filter(({hidden})=>!hidden).map(({title,height,el})=>(
                       <div key={title} style={{...CARD}}>
                         <div style={{fontSize:"9px",color:T.textDim,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"12px",fontFamily:"monospace"}}>{title}</div>
