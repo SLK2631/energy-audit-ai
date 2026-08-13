@@ -1711,9 +1711,37 @@ export default function App() {
     }
   };
 
+  const MONTHLY_ANALYSIS_LIMIT = 3;
+
+  // Returns true if the user is allowed to analyze (under their monthly limit)
+  const checkUsageLimit = async () => {
+    if (!session?.user) return true; // shouldn't happen post-auth, fail open
+    try {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0,0,0,0);
+      const { count, error } = await supabase
+        .from("analyses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", session.user.id)
+        .gte("created_at", startOfMonth.toISOString());
+      if (error) throw error;
+      if ((count||0) >= MONTHLY_ANALYSIS_LIMIT) {
+        setError(`You've reached your free limit of ${MONTHLY_ANALYSIS_LIMIT} analyses this month. Upgrade or check back next month.`);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error("Failed to check usage limit:", e);
+      return true; // fail open — don't block a real user over a check failure
+    }
+  };
+
   // Bulk analyze up to 12 files sequentially
   const bulkAnalyze = async () => {
     if(!bulkFiles.length || bulkRunning) return;
+    const allowed = await checkUsageLimit();
+    if (!allowed) return;
     setBulkRunning(true);
     const progress = bulkFiles.map(f=>({name:f.name,status:"queued",result:null,error:null}));
     setBulkProgress([...progress]);
@@ -1748,7 +1776,10 @@ export default function App() {
   },[]);
 
   const analyze = async()=>{
-    if(!imageDataUrl) return; setAnalyzing(true); setError(null);
+    if(!imageDataUrl) return;
+    const allowed = await checkUsageLimit();
+    if (!allowed) return;
+    setAnalyzing(true); setError(null);
     try {
       const parsed = await analyzeSingleFile(file);
       if(parsed.billType) parsed.billType=parsed.billType.toUpperCase();
